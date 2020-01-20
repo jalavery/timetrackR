@@ -1,0 +1,13 @@
+name: proj_management
+title: proj_management
+username:
+account: jalavery
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 401424
+bundleId: 1756146
+url: https://jalavery.shinyapps.io/proj_management/
+when: 1544553816.09951
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: saved/server.R|saved/ui.R
