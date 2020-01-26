@@ -61,30 +61,38 @@ shinyServer(function(input, output) {
   #active project table#
   ######################
   active_projs = reactive({
-    active %>% filter(statistician %in% input$statistician, PI %in% input$PI_choice,
-                          !is.na(proj_start),
-                          total_hours > 0,
-                          lubridate::year(proj_start) %in% input$years) %>% 
-      mutate(`Statistician` = init,`Start date` = start_dt) %>% 
-      select("PI","Study title","Current status","Start date",
-             "Hours","Statistician") 
+    proj_summary %>% filter(statistician %in% input$statistician, 
+                      pi %in% input$PI_choice,
+                      lubridate::year(proj_start) %in% input$years,
+                      status == "Active") %>% 
+      rename(`Statistician` = statistician, 
+             `Start date` = proj_start,
+             `PI` = pi,
+             `Study title` = study_title,
+             `Current status` = current_status,
+             `Hours` = total_hours) %>% 
+      select("PI", "Study title", "Current status", "Start date", "Hours", "Statistician") 
   })
   
   
   output$table <- DT::renderDataTable({
-    DT::datatable(active_projs(),rownames = FALSE) #rownames=FALSE removes obs #
+    #rownames=FALSE removes obs #
+    DT::datatable(active_projs(), rownames = FALSE) 
   })
-  # output$table <- renderTable(active_projs(),colnames=TRUE)
-  
+
   #########################
   #upcoming project table#
   #########################
   upcoming_projs = reactive({
-    upcoming %>% filter(statistician %in% input$statistician, PI %in% input$PI_choice,
-                      !is.na(proj_start),
-                      Hours > 0,
-                      lubridate::year(proj_start) %in% input$years) %>% 
-      mutate(`Statistician` = init,`Start date` = start_dt) %>% 
+    proj_summary %>% filter(statistician %in% input$statistician, 
+                        pi %in% input$PI_choice,
+                        lubridate::year(proj_start) %in% input$years,
+                        status == "Upcoming") %>% 
+      rename(`Statistician` = statistician,
+             `PI` = pi,
+             `Start date` = proj_start,
+             `Study title` = study_title,
+             `Current status` = current_status) %>% 
       select("Statistician", "PI", "Study title", "Current status") 
   })
   
@@ -96,11 +104,20 @@ shinyServer(function(input, output) {
   #completed project table#
   #########################
   inactive_projs = reactive({ 
-    inactive %>% 
-      filter(statistician %in% input$statistician, PI %in% input$PI_choice, lubridate::year(start_dt) %in% input$years) %>%
-      mutate(`Statistician` = statistician,`Start date` = start_dt,`End date` = end_dt,`Weeks to completion` = weekstocompletion) %>% 
-      # select(-statistician, -start_dt, -end_dt, -weekstocompletion)
-      select("PI","Study title","Current status","Start date","Hours",`Statistician`)
+    proj_summary %>% 
+      filter(statistician %in% input$statistician, 
+             pi %in% input$PI_choice, 
+             lubridate::year(proj_start) %in% input$years,
+             status %in% c("Dropped", "Completed")) %>%
+      rename(`Statistician` = statistician,
+             PI = pi,
+             `Study title` = study_title,
+             `Start date` = proj_start,
+             `End date` = proj_end,
+             `Current status` = current_status,
+             `Total hours` = total_hours,
+             `Weeks to completion` = weekstocompletion) %>% 
+      select("PI", "Study title", "Current status", "Start date", "Total hours", Statistician)
   })
   
   # active_projs2 <- active_projs[,c("PI","Study title","Project initiated","Hours")]
@@ -113,25 +130,32 @@ shinyServer(function(input, output) {
   #      pie chart     #
   ######################
   output$pieChart <- renderPlotly({
-    pie <- tracker %>% filter(statistician %in% input$statistician, year(proj_start) %in% input$years) %>% 
-      group_by(PI,statistician) %>% summarize(sum_hrs = sum(Hours.x,na.rm = TRUE))
-      plot_ly(data = pie, labels = ~PI, values = ~sum_hrs, type = 'pie') %>%
+    pie <- tracker %>% 
+      filter(statistician %in% input$statistician, 
+             year(proj_start) %in% input$years) %>% 
+      group_by(pi, statistician) %>% 
+      # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+      summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+      plot_ly(labels = ~ pi, values = ~sum_hrs, type = 'pie') %>%
       layout(title = '% of total hours by PI',
              xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
              yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))})
   
-  ######################
-  #      bar chart     #
-  ######################
+  ########################
+  # horizontal bar chart #
+  ########################
   output$barChart <- renderPlotly({
     bar <- tracker %>%
-      mutate(status = paste('Statistician:', statistician, '<br>PI: ', tracker$PI, '<br>Status: ', `Current status`, ' (', `As of`, ')', '<br>Final product: ', `Final product`,sep = "")) %>% 
-      filter(statistician %in% input$statistician, year(proj_start) %in% input$years, PI %in% input$PI_choice) %>% 
-      group_by(PI,status,Project,statistician,`Final product`) %>% summarize(sum_hrs = sum(Hours.x,na.rm = TRUE))
+      mutate(status = paste('Statistician:', statistician, '<br>PI: ', pi, '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product)) %>% 
+      filter(statistician %in% input$statistician, 
+             year(proj_start) %in% input$years, 
+             pi %in% input$PI_choice) %>% 
+      group_by(pi, status, study_title, statistician, final_product) %>% 
+      summarize(sum_hrs = sum(hours, na.rm = TRUE))
     
       #bars shrink in width when bar is also grouped by status -- why?? #changed barmode from group to relative
       
-      plot_ly(data = bar, y = ~Project, x = ~sum_hrs, type = 'bar',split = ~PI, hoverinfo = "text", 
+      plot_ly(data = bar, y = ~study_title, x = ~sum_hrs, type = 'bar',split = ~pi, hoverinfo = "text", 
               text = ~status, height = 800) %>%
         layout(yaxis = list(title = "", categoryorder = "array", categoryarray = order, type = "category", autorange = "reversed"),
                xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
@@ -143,7 +167,8 @@ shinyServer(function(input, output) {
   ######################
   output$GanttChart <- renderPlot({
     phase <- tracker %>% 
-      mutate(PI_last =  gsub(",", "",word(PI,1)), status = paste('Statistician:', statistician, '<br>PI: ', tracker$PI, '<br>Status: ', `Current status`, ' (', `As of`, ')',sep = "")) %>%
+      mutate(PI_last =  gsub(",", "",word(PI,1)), 
+             status = paste('Statistician:', statistician, '<br>PI: ', tracker$PI, '<br>Status: ', `Current status`, ' (', `As of`, ')')) %>%
       filter(is.na(`Project phase`) == FALSE, statistician %in% input$statistician, year(proj_start) %in% input$years, PI %in% input$PI_choice) %>% 
       mutate(ProjPhase = `Project phase`,status = ifelse(completed == 1,"Completed","In progress")) %>% 
       select(Project,Date,ProjPhase,PI_last,status) %>% 
