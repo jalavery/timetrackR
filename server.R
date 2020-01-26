@@ -21,35 +21,40 @@ library(shiny)
 library(ggplot2)
 
 load("tracker.rdata")
-load("active.rdata")
-load("completed.rdata")
-load("upcoming.rdata")
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
-  ## options for statisticians (remove if this is a drop down instead, have to change UI)
+  # statistician names
   output$statistician <- renderUI({
-    statisticians <- c("Jessica Lavery","Renee Gennarelli","Mike Curry")
-    selectizeInput("statistician", label = "Statistician(s)", choices = statisticians,
-                   selected = statisticians[c(1,3)], multiple = TRUE)
+    selectizeInput("statistician", label = "Statistician(s)", 
+                   choices = unique(tracker$statistician),
+                   selected = unique(tracker$statistician)[c(1,2)], multiple = TRUE)
   })
     
-  # get list of PIs based on statistician choice
+  # list of PIs based on statistician choice
   output$PI_choice <- renderUI({
-    PIs <- tracker %>% filter(statistician %in% input$statistician) %>%
-      distinct(PI) %>% pull()
+    # filter on the statisticians selected and get unique list of PIs
+    pi_list <- tracker %>% 
+      filter(statistician %in% input$statistician) %>%
+      distinct(pi) %>% 
+      select(pi)
     
-    selectizeInput("PI_choice", label = "Investigator(s)", choices = PIs,
-                   selected = PIs[], multiple = TRUE)
+    selectizeInput("PI_choice", 
+                   label = "Investigator(s)", 
+                   choices = pi_list,
+                   selected = pull(pi_list, pi),
+                   multiple = TRUE)
   })
   
-  #get list of available years for menu on side
+  # list of available years for menu on side
+  # start by selecting the previous year and curent year
   output$years <- renderUI({
-    years = unique(lubridate::year(tracker$proj_start))
-    
-    selectizeInput("years", label = "Year project started", choices = years,
-                   selected = years[1:2], multiple = TRUE)
+    selectizeInput("years", 
+                   label = "Year project started", 
+                   choices = sort(unique(lubridate::year(tracker$proj_start))),
+                   selected = c(year(Sys.Date()) - 1, year(Sys.Date())), 
+                   multiple = TRUE)
   })
   
   ######################
@@ -58,7 +63,7 @@ shinyServer(function(input, output) {
   active_projs = reactive({
     active %>% filter(statistician %in% input$statistician, PI %in% input$PI_choice,
                           !is.na(proj_start),
-                          Hours > 0,
+                          total_hours > 0,
                           lubridate::year(proj_start) %in% input$years) %>% 
       mutate(`Statistician` = init,`Start date` = start_dt) %>% 
       select("PI","Study title","Current status","Start date",

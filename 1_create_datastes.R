@@ -12,81 +12,93 @@ library(lubridate)
 # necessary variables are: date, hours, task, project, project phase
 
 #read in long hours sheet
-time_tracker_JL_long <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 1)
+time_tracker_JL_long <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 1) %>% 
+  mutate(statistician = "Jessica Lavery")
 
-time_tracker_MC_long <- read_xlsx(path = "G:/Biostats/R/proj_mgmnt/Project Tracker MC.xlsx", sheet = 1)
+time_tracker_MC_long <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 1) %>% 
+  mutate(statistician = "Mike Curry")
 
 # set data for each statistician together
 time_tracker_long <- bind_rows(time_tracker_JL_long, time_tracker_MC_long) %>% 
+  janitor::clean_names() %>% 
   # hardcode work done on the same project across JL/MC to be the same
-  mutate(Project = ifelse(Project == "Thyroid Active survallence","Thyroid: AS vs Surgery", Project))
+  mutate(project = ifelse(project == "Thyroid Active survallence","Thyroid: AS vs Surgery", project)) %>% 
+  select(-detailed) %>% 
+  rename(study_title = project)
 
 # step 2 -------
 # read in summary spreadsheet with 1 record per project and its current status
 # necessary variables include: 
-project_summary_JL <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 3)
-project_summary_MC <- read_xlsx(path = "G:/Biostats/R/Project Management Shiny App/Project Tracker MC.xlsx", sheet = 2)
+project_summary_JL_a <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 3)
+# moved completed projects to a separate tab
+project_summary_JL_b <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 4)
+
+project_summary_MC <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 2)
 
 #define variables in summary sheet
 #note: subtracting POSIXt dates gives difference in seconds, have to convert
-project_summary_JL_mod <- project_summary_JL %>% 
+project_summary_JL_mod <- bind_rows(project_summary_JL_a, project_summary_JL_b) %>% 
+  janitor::clean_names() %>% 
+  select(-priority, -group, -lead_stats, -second_stats, -in_my_court, -protocol_no, -dataset, -path_to_files, -notes, -protocol_status) %>% 
   mutate(statistician = "Jessica Lavery",
-         init = ifelse(statistician == "Jessica Lavery", "JL","UNK"),
-         proj_start = as.Date(`Project initiated`),
-         proj_end = as.Date(`Project completed`),
-         start_dt = format(`Project initiated`,'%Y-%m-%d'),
-         end_dt = format(`Project completed`,'%Y-%m-%d'),
-         completed = ifelse(word(`Current status`,1) == "Completed",1,0),
-         upcoming = ifelse(word(`Current status`,1) == "Upcoming:",1,0),
-         dropped = ifelse(word(`Current status`,1) == "Dropped:",1,0),
-         daystocompletion = as.numeric((`Project completed` - `Project initiated`)/(60*60*24)),
-         weekstocompletion = format(as.numeric((`Project completed` - `Project initiated`)/(7*60*60*24)),digits = 1),
-         monthstocompletion = as.numeric((`Project completed` - `Project initiated`)/(4*7*60*60*24))) %>%
-  rename(ttl = `Study title`)
+         init = ifelse(statistician == "Jessica Lavery", "JL", "UNK"),
+         proj_start = as.Date(project_initiated),
+         proj_end = as.Date(project_completed))
 
 #hard coding start date for Mike's projects
 #subtracting as.Date() variables gives days difference, modified date code
 project_summary_MC_mod <- project_summary_MC %>% 
-  filter(!`Study title` %in% c("Hospital Size Estimation","John Hopkins Meeting"), PI != "Curry, Mike") %>% 
-  mutate(ttl = `Study title`, statistician = "Mike Curry",
+  janitor::clean_names() %>% 
+  # exclude specific projects from tracker
+  filter(!study_title %in% c("Hospital Size Estimation","John Hopkins Meeting"), pi != "Curry, Mike") %>% 
+  mutate(statistician = "Mike Curry",
          init = "MC",
-         PI = ifelse(PI %in% c("Li, Diane","Krell, Robert"),"Snyderman, Allison",
-                     ifelse(PI == "Nobel, Tamar","Molena, Daniela", PI)),
+         # combine sub-projects under a single PI
+         pi = ifelse(pi %in% c("Li, Diane", "Krell, Robert"), "Snyderman, Allison",
+                     ifelse(pi == "Nobel, Tamar", "Molena, Daniela", pi)),
+         # hard code the date Mike started tracking his projects
          proj_start = as.Date("2017-11-15"),
-         proj_end = as.Date(`Project completed`),
-         start_dt = format(proj_start,'%Y-%m-%d') ,
-         end_dt = format(`Project completed`,'%Y-%m-%d'),
-         completed = ifelse(word(`Current status`,1) == "Completed",1,0),
-         upcoming = ifelse(word(`Current status`,1) == "Upcoming:",1,0),
-         dropped = ifelse(word(`Current status`,1) == "Dropped:",1,0),
-         daystocompletion = as.numeric((proj_end - proj_start)),
-         weekstocompletion = format(as.numeric((proj_end - proj_start)/(7)),digits = 1),
-         monthstocompletion = as.numeric((proj_end - proj_start)/(4*7)))
+         proj_end = as.Date(project_completed)) %>% 
+  select(-dataset, -notes)
 
 # set project summaries for each statistician together
 proj_summary <- bind_rows(project_summary_JL_mod, project_summary_MC_mod) %>% 
   # collapse the same project that we called two different names
-  mutate(`Study title` = ifelse(`Study title` == "Thyroid Active survallence", "Thyroid: AS vs Surgery", `Study title`),
-         ttl = ifelse(ttl == "Thyroid Active survallence", "Thyroid: AS vs Surgery", ttl))
+  mutate(study_title = ifelse(study_title == "Thyroid Active survallence", "Thyroid: AS vs Surgery", study_title)) %>% 
+  # drop rows without project start date (miscallaneous asks, IT, etc.)
+  drop_na(proj_start) %>% 
+  # create variables for summaries
+  mutate(status = case_when(word(current_status, 1) == "Upcoming:" ~ "Upcoming",
+                            word(current_status, 1) == "Completed" ~ "Completed",
+                            word(current_status, 1) == "Dropped:" ~ "Dropped",
+                            TRUE ~ "Active"),
+         daystocompletion = (proj_end - proj_start),
+         weekstocompletion = round(daystocompletion/7),
+         monthstocompletion = round(daystocompletion/365.25)) %>% 
+  rename(total_hours = hours)
 
 # step 3 ----
 # separate projects into active, upcoming and inactive
 #active projects
 active <- proj_summary %>% 
-  filter(completed != 1 & upcoming != 1 & dropped != 1)
+  filter(status == "Active")
 
 #upcoming projects
 upcoming <- proj_summary %>% 
-  filter(upcoming == 1)
+  filter(status == "Upcoming")
 
 #inactive (completed + dropped) projects
 inactive <- proj_summary %>% 
-  filter(completed == 1 | dropped == 1) %>%  
-  select(statistician, `Study title`, PI, start_dt, `Current status`, end_dt, Hours, weekstocompletion)
+  filter(status %in% c("Completed", "Dropped")) %>%  
+  select(statistician, study_title, pi, proj_start, current_status, proj_end, total_hours, weekstocompletion)
 
 # merge two spreadsheets together
-tracker <- merge(time_tracker_long, proj_summary, by.x = "Project", by.y =  "ttl") 
+# 1 record per time entry with summary information merged on
+tracker <- left_join(time_tracker_long, 
+                     proj_summary,
+                     by = c("study_title", "statistician"))
 
 # step 4 -----
 # save data to access in shiny app
-save(tracker, active, upcoming, inactive,file = paste0(here::here(), "/tracker.rdata"))
+save(tracker, active, upcoming, inactive,
+     file = here::here("/tracker.rdata"))
