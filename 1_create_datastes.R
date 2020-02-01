@@ -22,7 +22,7 @@ time_tracker_MC_long <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), 
 time_tracker_long <- bind_rows(time_tracker_JL_long, time_tracker_MC_long) %>% 
   janitor::clean_names() %>% 
   # hardcode work done on the same project across JL/MC to be the same
-  mutate(project = ifelse(project == "Thyroid Active survallence","Thyroid: AS vs Surgery", project)) %>% 
+  mutate(project = ifelse(project == "Thyroid Active survallence", "Thyroid: AS vs Surgery", project)) %>% 
   select(-detailed) %>% 
   rename(study_title = project)
 
@@ -96,7 +96,11 @@ inactive <- proj_summary %>%
 # 1 record per time entry with summary information merged on
 tracker <- left_join(time_tracker_long, 
                      proj_summary,
-                     by = c("study_title", "statistician"))
+                     by = c("study_title", "statistician")) #%>% 
+  # if we wanted to include items logged without a PI (e.g. biostats seminars, admin, other misc., fill in PI with the study title)
+  # mutate(pi = case_when(!is.na(pi) ~ pi,
+  #                       !is.na(study_title) ~ study_title))
+
 
 # step 4 -----
 # save data to access in shiny app

@@ -61,7 +61,7 @@ shinyServer(function(input, output) {
   #active project table#
   ######################
   active_projs = reactive({
-    proj_summary %>% filter(statistician %in% input$statistician, 
+    tracker %>% filter(statistician %in% input$statistician, 
                       pi %in% input$PI_choice,
                       lubridate::year(proj_start) %in% input$years,
                       status == "Active") %>% 
@@ -84,7 +84,7 @@ shinyServer(function(input, output) {
   #upcoming project table#
   #########################
   upcoming_projs = reactive({
-    proj_summary %>% filter(statistician %in% input$statistician, 
+    tracker %>% filter(statistician %in% input$statistician, 
                         pi %in% input$PI_choice,
                         lubridate::year(proj_start) %in% input$years,
                         status == "Upcoming") %>% 
@@ -104,7 +104,7 @@ shinyServer(function(input, output) {
   #completed project table#
   #########################
   inactive_projs = reactive({ 
-    proj_summary %>% 
+    tracker %>% 
       filter(statistician %in% input$statistician, 
              pi %in% input$PI_choice, 
              lubridate::year(proj_start) %in% input$years,
@@ -167,27 +167,29 @@ shinyServer(function(input, output) {
   ######################
   output$GanttChart <- renderPlot({
     phase <- tracker %>% 
-      mutate(PI_last =  gsub(",", "",word(PI,1)), 
-             status = paste('Statistician:', statistician, '<br>PI: ', tracker$PI, '<br>Status: ', `Current status`, ' (', `As of`, ')')) %>%
-      filter(is.na(`Project phase`) == FALSE, statistician %in% input$statistician, year(proj_start) %in% input$years, PI %in% input$PI_choice) %>% 
-      mutate(ProjPhase = `Project phase`,status = ifelse(completed == 1,"Completed","In progress")) %>% 
-      select(Project,Date,ProjPhase,PI_last,status) %>% 
-      group_by(Project, ProjPhase,PI_last,status) %>% 
-      dplyr::summarize(start_dt = as.Date(min(Date)), end_dt = as.Date(max(Date))) %>% 
+      mutate(pi_last =  gsub(",", "",word(pi,1)), 
+             status = paste('Statistician:', statistician, '<br>PI: ', pi, '<br>Status: ', current_status, ' (', as_of, ')')) %>%
+      filter(is.na(project_phase) == FALSE, 
+             statistician %in% input$statistician, 
+             year(proj_start) %in% input$years, 
+             pi %in% input$PI_choice) %>% 
+      select(study_title, date, project_phase, pi_last, status) %>% 
+      group_by(study_title, project_phase, pi_last, status) %>% 
+      dplyr::summarize(start_dt = as.Date(min(date)), end_dt = as.Date(max(date))) %>% 
       mutate(end_dt = as.Date(ifelse(start_dt == end_dt, end_dt + days(1), end_dt), origin = "1970-01-01"))
     
     #get start date for each project and order y-axis by that variable by making
     #a factor variable
     phase1b <- phase %>% 
       ungroup() %>%
-      group_by(Project, PI_last) %>%
+      group_by(study_title, pi_last) %>%
       dplyr::summarize(overall_start = as.Date(min(start_dt))) %>% 
       ungroup() %>% 
       arrange(desc(overall_start)) %>% 
-      mutate(y_new = factor(Project, levels = Project[order(desc(overall_start))])) 
+      mutate(y_new = factor(study_title, levels = study_title[order(desc(overall_start))])) 
     
     #merge onto dataset
-    phase1c <- merge(phase,phase1b,by = c("Project","PI_last"))
+    phase1c <- merge(phase, phase1b, by = c("study_title","pi_last"))
     
     #summarize with min and max of all dates
     phase2 <- phase1c %>% 
@@ -195,14 +197,21 @@ shinyServer(function(input, output) {
       mutate(mindt = min(start_dt), maxdt = max(end_dt))
     
     ggplot(phase2) +
-      geom_vline(xintercept = as.Date("2018-06-01"),color = "gray") +
-      geom_vline(xintercept = as.Date("2017-05-01"),color = "gray") +
-      geom_segment(aes(x = start_dt, xend = end_dt, y = y_new, yend = y_new, colour = ProjPhase, alpha = status), size = 10) +
+      # geom_vline(xintercept = as.Date("2018-06-01"),color = "gray") +
+      # geom_vline(xintercept = as.Date("2017-05-01"),color = "gray") +
+      geom_segment(aes(x = start_dt, xend = end_dt, 
+                       y = y_new, yend = y_new, 
+                       colour = project_phase), size = 10) + #, alpha = status), size = 10) +
       theme_bw() +
-      theme(axis.title = element_blank(), legend.position = "bottom",legend.title = element_blank()) +
+      theme(axis.title = element_blank(), 
+            legend.position = "bottom",
+            legend.title = element_blank()) +
       scale_x_date(breaks = "2 months", date_labels = "%b %Y") +
-      facet_grid(switch(input$stratify,"PI" = PI_last~., "Status" = status~.),space  =  "free", scales = "free_y") +
-      scale_colour_discrete(breaks = c("Project planning","Grant preparation","Analysis","Manuscript preparation","Revisions"))  +  
+      facet_grid(switch(input$stratify,
+                        "PI" = pi_last~., 
+                        "Status" = status ~.),
+                 space  =  "free", scales = "free_y") +
+      scale_colour_discrete(breaks = c("Project planning","Grant preparation", "Analysis", "Manuscript preparation", "Revisions"))  +  
       scale_alpha_discrete(range = c(1, 0.55), guide = FALSE)
   },
     height = 1050)
