@@ -9,6 +9,8 @@
 # 14AUG2018 Add completed projects table
 # 15AUG2018 Add bar chart
 # 16AUG2018 Add Mike's project tracker data
+# 31JAN2020 Update to run on cleaned up code
+# 03FEB2020 Update to filter on date rather than using year that project started
 
 
 library(tidyverse)
@@ -61,7 +63,7 @@ shinyServer(function(input, output) {
   #active project table#
   ######################
   active_projs = reactive({
-    tracker %>% filter(statistician %in% input$statistician, 
+    proj_summary %>% filter(statistician %in% input$statistician, 
                       pi %in% input$PI_choice,
                       lubridate::year(proj_start) %in% input$years,
                       status == "Active") %>% 
@@ -84,7 +86,7 @@ shinyServer(function(input, output) {
   #upcoming project table#
   #########################
   upcoming_projs = reactive({
-    tracker %>% filter(statistician %in% input$statistician, 
+    proj_summary %>% filter(statistician %in% input$statistician, 
                         pi %in% input$PI_choice,
                         lubridate::year(proj_start) %in% input$years,
                         status == "Upcoming") %>% 
@@ -104,7 +106,7 @@ shinyServer(function(input, output) {
   #completed project table#
   #########################
   inactive_projs = reactive({ 
-    tracker %>% 
+    proj_summary %>% 
       filter(statistician %in% input$statistician, 
              pi %in% input$PI_choice, 
              lubridate::year(proj_start) %in% input$years,

@@ -104,5 +104,5 @@ tracker <- left_join(time_tracker_long,
 
 # step 4 -----
 # save data to access in shiny app
-save(tracker, active, upcoming, inactive,
+save(tracker, proj_summary, active, upcoming, inactive,
      file = here::here("/tracker.rdata"))
