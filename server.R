@@ -40,7 +40,8 @@ shinyServer(function(input, output) {
     pi_list <- tracker %>% 
       filter(statistician %in% input$statistician) %>%
       distinct(pi) %>% 
-      select(pi)
+      select(pi) %>% 
+      arrange(pi)
     
     selectizeInput("PI_choice", 
                    label = "Investigator(s)", 
@@ -52,11 +53,12 @@ shinyServer(function(input, output) {
   # list of available years for menu on side
   # start by selecting the previous year and curent year
   output$years <- renderUI({
-    selectizeInput("years", 
-                   label = "Year project started", 
-                   choices = sort(unique(lubridate::year(tracker$proj_start))),
-                   selected = c(year(Sys.Date()) - 1, year(Sys.Date())), 
-                   multiple = TRUE)
+    dateRangeInput(inputId = "years", 
+                   label = "As of date: ",
+                   start = as.Date("2019-01-01"), end = Sys.Date(), min = NULL,
+                   max = Sys.Date(), format = "yyyy-mm-dd", startview = "month",
+                   weekstart = 0, language = "en", separator = " to ", width = NULL,
+                   autoclose = TRUE)
   })
   
   ######################
@@ -65,7 +67,6 @@ shinyServer(function(input, output) {
   active_projs = reactive({
     proj_summary %>% filter(statistician %in% input$statistician, 
                       pi %in% input$PI_choice,
-                      lubridate::year(proj_start) %in% input$years,
                       status == "Active") %>% 
       rename(`Statistician` = statistician, 
              `Start date` = proj_start,
@@ -88,7 +89,6 @@ shinyServer(function(input, output) {
   upcoming_projs = reactive({
     proj_summary %>% filter(statistician %in% input$statistician, 
                         pi %in% input$PI_choice,
-                        lubridate::year(proj_start) %in% input$years,
                         status == "Upcoming") %>% 
       rename(`Statistician` = statistician,
              `PI` = pi,
@@ -109,7 +109,6 @@ shinyServer(function(input, output) {
     proj_summary %>% 
       filter(statistician %in% input$statistician, 
              pi %in% input$PI_choice, 
-             lubridate::year(proj_start) %in% input$years,
              status %in% c("Dropped", "Completed")) %>%
       rename(`Statistician` = statistician,
              PI = pi,
@@ -131,34 +130,58 @@ shinyServer(function(input, output) {
   ######################
   #      pie chart     #
   ######################
+  
   output$pieChart <- renderPlotly({
-    pie <- tracker %>% 
-      filter(statistician %in% input$statistician, 
-             year(proj_start) %in% input$years) %>% 
-      group_by(pi, statistician) %>% 
-      # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
-      summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-      plot_ly(labels = ~ pi, values = ~sum_hrs, type = 'pie') %>%
-      layout(title = '% of total hours by PI',
-             xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-             yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))})
+  pie <- tracker %>% 
+    filter(statistician %in% input$statistician, 
+           date >= input$years[1],
+           date <= input$years[2])
+  
+  # change grouping to sum depending on which summary level is selected
+  switch(input$stratify_pct_effort,
+         "PI" = pie %>% 
+            group_by(pi, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ pi, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by faculty/principal investigator',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         "Project" = pie %>% 
+           group_by(study_title, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ study_title, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by project',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         "Task" = pie %>% 
+           group_by(project_phase, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ project_phase, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by project phase',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
+  })
   
   ########################
   # horizontal bar chart #
   ########################
   output$barChart <- renderPlotly({
     bar <- tracker %>%
-      mutate(status = paste('Statistician:', statistician, '<br>PI: ', pi, '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product)) %>% 
+      mutate(status_desc = paste('Statistician:', statistician, '<br>PI: ', pi, '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product)) %>% 
       filter(statistician %in% input$statistician, 
-             year(proj_start) %in% input$years, 
+             date >= input$years[1],
+             date <= input$years[2],
              pi %in% input$PI_choice) %>% 
-      group_by(pi, status, study_title, statistician, final_product) %>% 
+      group_by(pi, status, study_title, statistician, final_product, status_desc) %>% 
       summarize(sum_hrs = sum(hours, na.rm = TRUE))
     
       #bars shrink in width when bar is also grouped by status -- why?? #changed barmode from group to relative
       
-      plot_ly(data = bar, y = ~study_title, x = ~sum_hrs, type = 'bar',split = ~pi, hoverinfo = "text", 
-              text = ~status, height = 800) %>%
+      plot_ly(data = bar, y = ~study_title, x = ~sum_hrs, type = 'bar', split = ~pi, hoverinfo = "text", 
+              text = ~status_desc, height = 800) %>%
         layout(yaxis = list(title = "", categoryorder = "array", categoryarray = order, type = "category", autorange = "reversed"),
                xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
                autosize = F, margin = list(l = 235))
@@ -170,10 +193,11 @@ shinyServer(function(input, output) {
   output$GanttChart <- renderPlot({
     phase <- tracker %>% 
       mutate(pi_last =  gsub(",", "",word(pi,1)), 
-             status = paste('Statistician:', statistician, '<br>PI: ', pi, '<br>Status: ', current_status, ' (', as_of, ')')) %>%
+             status = paste('Statistician:', statistician, '<br> PI: ', pi, '<br> Status: ', current_status, ' (', as_of, ')')) %>%
       filter(is.na(project_phase) == FALSE, 
              statistician %in% input$statistician, 
-             year(proj_start) %in% input$years, 
+             date >= input$years[1],
+             date <= input$years[2], 
              pi %in% input$PI_choice) %>% 
       select(study_title, date, project_phase, pi_last, status) %>% 
       group_by(study_title, project_phase, pi_last, status) %>% 
@@ -210,7 +234,7 @@ shinyServer(function(input, output) {
             legend.title = element_blank()) +
       scale_x_date(breaks = "2 months", date_labels = "%b %Y") +
       facet_grid(switch(input$stratify,
-                        "PI" = pi_last~., 
+                        "PI" = pi_last ~ ., 
                         "Status" = status ~.),
                  space  =  "free", scales = "free_y") +
       scale_colour_discrete(breaks = c("Project planning","Grant preparation", "Analysis", "Manuscript preparation", "Revisions"))  +  

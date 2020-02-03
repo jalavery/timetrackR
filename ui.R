@@ -14,14 +14,14 @@ library(rsconnect)
 library(DT)
 
 #data management
-biostats <- c("Jessica Lavery", "Renee Gennarelli", "Mike Curry")
+biostats <- c("Jessica Lavery", "Mike Curry")
 
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("HORG Biostatistics Project Overview"),
+  titlePanel("Biostatistics Team Project Overview"),
   
   
   sidebarLayout(
@@ -51,11 +51,13 @@ shinyUI(fluidPage(
                  # fluidRow(DT::dataTableOutput('table'))),
                  DT::dataTableOutput('table')),
         #plotlyOutput("activePlot")),
-        tabPanel("Upcoming",tags$br(),
-                 DT::dataTableOutput('table_upcoming')),
+        # tabPanel("Upcoming",tags$br(),
+        #          DT::dataTableOutput('table_upcoming')),
         tabPanel("Inactive",
                  DT::dataTableOutput('table2')),
-        tabPanel("Hours by PI",tags$br(),
+        tabPanel("Percent effort",tags$br(),
+                 radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
+                              choices = c("PI", "Project", "Task"), inline = TRUE),
                  #plotlyOutput("hrsPlot"),
                  #potOutput("hrsPlot"),
                  plotlyOutput("pieChart")),#by PI
