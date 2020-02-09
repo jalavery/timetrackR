@@ -13,9 +13,6 @@ library(tidyverse)
 library(rsconnect)
 library(DT)
 
-#data management
-biostats <- c("Jessica Lavery", "Mike Curry")
-
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
@@ -35,7 +32,7 @@ shinyUI(fluidPage(
       #             choices = biostats, selected = "Jessica Lavery"),
       
       #drop down menu for PIs based on statistician
-      uiOutput("PI_choice"),
+      # uiOutput("PI_choice"),
       
       #drop down menu for projects based on statistician
       # uiOutput("proj_choice")
@@ -64,8 +61,8 @@ shinyUI(fluidPage(
         tabPanel("Hours by Project",tags$br(),
                  plotlyOutput("barChart")), #by Project
         tabPanel("Timeline",tags$br(),
-                 radioButtons("stratify", label = h4("Stratify plot by:"), 
-                              choices = c("PI","Status"),inline = TRUE),
+                 radioButtons("stratify", label = h4("Arrange plot by:"), 
+                              choices = c("Project start time","PI"), inline = TRUE),
                  plotOutput("GanttChart"))
                  
 

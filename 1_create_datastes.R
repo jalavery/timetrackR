@@ -29,9 +29,9 @@ time_tracker_long <- bind_rows(time_tracker_JL_long, time_tracker_MC_long) %>%
 # step 2 -------
 # read in summary spreadsheet with 1 record per project and its current status
 # necessary variables include: 
-project_summary_JL_a <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 3)
+project_summary_JL_a <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 2)
 # moved completed projects to a separate tab
-project_summary_JL_b <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 4)
+project_summary_JL_b <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 3)
 
 project_summary_MC <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 2)
 
@@ -69,8 +69,8 @@ proj_summary <- bind_rows(project_summary_JL_mod, project_summary_MC_mod) %>%
   drop_na(proj_start) %>% 
   # create variables for summaries
   mutate(status = case_when(word(current_status, 1) == "Upcoming:" ~ "Upcoming",
-                            word(current_status, 1) == "Completed" ~ "Completed",
-                            word(current_status, 1) == "Dropped:" ~ "Dropped",
+                            word(current_status, 1) %in% c("Complete", "Completed", "Completed:", "Complete:") ~ "Completed",
+                            word(current_status, 1) %in% c("Dropped", "Dropped:") ~ "Dropped",
                             TRUE ~ "Active"),
          daystocompletion = (proj_end - proj_start),
          weekstocompletion = round(daystocompletion/7),
