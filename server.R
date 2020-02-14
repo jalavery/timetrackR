@@ -115,41 +115,15 @@ shinyServer(function(input, output) {
       group_by(pi, current_status, as_of, study_title, statistician, final_product) %>% 
       summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
       ungroup() %>% 
-      mutate(#study_title = stringr::str_wrap(study_title, width = 30),
-             study_title_factor = fct_reorder(study_title, pi),
-             status_desc = paste0('<br>PI: ', pi, 
-                                 '<br>Hours: ', sum_hrs,
-                                 '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product))
+      mutate(# order study title by PI to group in order long the axis
+        study_title_factor = fct_reorder(study_title, pi),
+        status_desc = paste0('<br>PI: ', pi, 
+                             '<br>Hours: ', sum_hrs,
+                             '<br>Status: ', current_status, 
+                             ' (', as_of, ')', '<br>Final product: ', 
+                             final_product))
     
-      # create barchart in ggplot and annotate via ggplotly
-      barchart <- ggplot(data = bar, 
-                         aes(x = study_title_factor, y = sum_hrs, 
-                             text = status_desc)) +
-        geom_col(aes(group = pi, fill = pi))+#, position = position_dodge2(width = 0.8, preserve = "single")) +
-        # geom_text(aes(y = 5, label = study_title), size = 3,
-        # hjust = 0, vjust = 0.3, 
-        # position = position_dodge(width = 1)
-        # position = position_dodge(width = 1),
-        # position = position_fill(vjust = 14.5)
-        #                                    )  +
-        labs(x = "Project",
-             y = "Total number of hours during date range",
-             caption = "Projects are color coded by principal investigator.") + 
-        # alt viz: lollipop graph
-        # geom_segment(aes(y = 0, yend = sum_hrs, xend = study_title, x = study_title)) +
-        # geom_point( size = 2, alpha = 0.6) +
-        coord_flip() +
-        mskRvis::theme_msk() +
-        theme(legend.position = "none"
-              # axis.text.y = element_blank()
-              ) 
-        # facet_grid(pi ~ ., scales = "free", space = "free", switch = "y")
-        # barchart
-      
-      # add hover feature via ggplotly
-      # ggplotly(barchart, tooltip = "text")
-      
-      # try going back to plotly
+      # create barchart for total number of hours
       plot_ly(data = bar, y = ~study_title_factor, x = ~sum_hrs, 
               type = 'bar', split = ~pi, hoverinfo = "text", 
               text = ~status_desc, height = 800) %>%
@@ -164,7 +138,7 @@ shinyServer(function(input, output) {
   ######################
   output$GanttChart <- renderPlot({
     phase <- tracker %>% 
-      mutate(pi_last =  gsub(",", "",word(pi,1)), 
+      mutate(pi_last =  gsub(",", "", word(pi,1)), 
              status = paste('Statistician:', statistician, 
                             '<br> PI: ', pi, 
                             '<br> Status: ', current_status, 

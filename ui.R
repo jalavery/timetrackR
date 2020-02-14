@@ -46,10 +46,10 @@ shinyUI(fluidPage(
                  plotlyOutput("pieChart")),
         
         tabPanel("Hours by Project",tags$br(),
-                 plotlyOutput("barChart")), 
+                 plotlyOutput("barChart")),
         
         tabPanel("Timeline",tags$br(),
-                 radioButtons("stratify", label = h4("Arrange plot by:"), 
+                 radioButtons("stratify", label = h4("Arrange plot by:"),
                               choices = c("Project start time","PI"), inline = TRUE),
                  plotOutput("GanttChart"))
         )
