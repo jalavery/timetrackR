@@ -41,75 +41,12 @@ shinyServer(function(input, output) {
     dateRangeInput(inputId = "years", 
                    label = "As of date: ",
                    # default time from 1 year prior through current date
-                   start = Sys.Date() - years(1), end = Sys.Date(), min = NULL,
-                   max = Sys.Date(), format = "yyyy-mm-dd", startview = "month",
-                   weekstart = 0, language = "en", separator = " to ", width = NULL,
-                   autoclose = TRUE)
-  })
-  
-  ######################
-  #active project table#
-  ######################
-  active_projs = reactive({
-    proj_summary %>% filter(statistician %in% input$statistician, 
-                      status == "Active") %>% 
-      rename(`Statistician` = statistician, 
-             `Start date` = proj_start,
-             `PI` = pi,
-             `Study title` = study_title,
-             `Current status` = current_status,
-             `Hours` = total_hours) %>% 
-      select("PI", "Study title", "Current status", "Start date", "Hours", "Statistician") 
-  })
-  
-  
-  output$table <- DT::renderDataTable({
-    #rownames=FALSE removes obs #
-    DT::datatable(active_projs(), rownames = FALSE) 
+                   start = Sys.Date() - years(1), end = Sys.Date(), 
+                   min = Sys.Date() - years(3), max = Sys.Date(), 
+                   format = "yyyy-mm-dd", startview = "month",
+                   separator = " to ", width = NULL, autoclose = TRUE)
   })
 
-  #########################
-  #upcoming project table#
-  #########################
-  upcoming_projs = reactive({
-    proj_summary %>% filter(statistician %in% input$statistician, 
-                        status == "Upcoming") %>% 
-      rename(`Statistician` = statistician,
-             `PI` = pi,
-             `Start date` = proj_start,
-             `Study title` = study_title,
-             `Current status` = current_status) %>% 
-      select("Statistician", "PI", "Study title", "Current status") 
-  })
-  
-  output$table_upcoming <- DT::renderDataTable({
-    DT::datatable(upcoming_projs(),rownames = FALSE) #rownames=FALSE removes obs #
-  })
-  
-  #########################
-  # inactive project table#
-  #########################
-  inactive_projs = reactive({ 
-    proj_summary %>% 
-      filter(statistician %in% input$statistician, 
-             status %in% c("Dropped", "Completed")) %>%
-      rename(`Statistician` = statistician,
-             PI = pi,
-             `Study title` = study_title,
-             `Start date` = proj_start,
-             `End date` = proj_end,
-             `Current status` = current_status,
-             `Total hours` = total_hours,
-             `Weeks to completion` = weekstocompletion) %>% 
-      select("PI", "Study title", "Current status", "Start date", "Total hours", Statistician)
-  })
-  
-  # active_projs2 <- active_projs[,c("PI","Study title","Project initiated","Hours")]
-  output$table2 <- DT::renderDataTable({
-    DT::datatable(inactive_projs(),rownames = FALSE)
-  })
-  # output$table2 <- renderTable(completed_projs(),colnames = TRUE)
-  
   ######################
   #      % effort      #
   ######################
@@ -117,7 +54,7 @@ shinyServer(function(input, output) {
   # subset data for pie chart based on statistician and dates
   output$pieChart <- renderPlotly({
   pie <- tracker %>% 
-    filter(statistician %in% input$statistician, 
+    filter(statistician %in% input$statistician,
            date >= input$years[1],
            date <= input$years[2])
   
@@ -171,27 +108,30 @@ shinyServer(function(input, output) {
       drop_na(current_status) %>% 
       filter(current_status != "Ongoing",
              status == "Active",
-             statistician %in% input$statistician,
-             date >= input$years[1],
-             date <= input$years[2],
+             # statistician %in% input$statistician,
+             # date >= input$years[1],
+             # date <= input$years[2],
              ) %>%
       group_by(pi, current_status, as_of, study_title, statistician, final_product) %>% 
       summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
       ungroup() %>% 
       mutate(#study_title = stringr::str_wrap(study_title, width = 30),
+             study_title_factor = fct_reorder(study_title, pi),
              status_desc = paste0('<br>PI: ', pi, 
                                  '<br>Hours: ', sum_hrs,
-                                 '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product)) 
-      
+                                 '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product))
+    
       # create barchart in ggplot and annotate via ggplotly
-      barchart <- ggplot(data = bar, aes(x = study_title, y = sum_hrs, text = status_desc)) +
-        geom_col(aes(fill = pi), position = position_dodge2(width = 0.8, preserve = "single")) +
-        geom_text(aes(x = study_title, y = 10, label = study_title), size = 3,
-        hjust = 0.5, vjust = 0.5, 
-        position = position_dodge(width = 1)
+      barchart <- ggplot(data = bar, 
+                         aes(x = study_title_factor, y = sum_hrs, 
+                             text = status_desc)) +
+        geom_col(aes(group = pi, fill = pi))+#, position = position_dodge2(width = 0.8, preserve = "single")) +
+        # geom_text(aes(y = 5, label = study_title), size = 3,
+        # hjust = 0, vjust = 0.3, 
+        # position = position_dodge(width = 1)
         # position = position_dodge(width = 1),
-        # position = position_fill(vjust = 4.5)
-                                           )  +
+        # position = position_fill(vjust = 14.5)
+        #                                    )  +
         labs(x = "Project",
              y = "Total number of hours during date range",
              caption = "Projects are color coded by principal investigator.") + 
@@ -200,13 +140,23 @@ shinyServer(function(input, output) {
         # geom_point( size = 2, alpha = 0.6) +
         coord_flip() +
         mskRvis::theme_msk() +
-        theme(legend.position = "none",
-              axis.text.y = element_blank()) 
+        theme(legend.position = "none"
+              # axis.text.y = element_blank()
+              ) 
         # facet_grid(pi ~ ., scales = "free", space = "free", switch = "y")
         # barchart
       
       # add hover feature via ggplotly
-      ggplotly(barchart, tooltip = "text")
+      # ggplotly(barchart, tooltip = "text")
+      
+      # try going back to plotly
+      plot_ly(data = bar, y = ~study_title_factor, x = ~sum_hrs, 
+              type = 'bar', split = ~pi, hoverinfo = "text", 
+              text = ~status_desc, height = 800) %>%
+        layout(yaxis = list(title = "", categoryorder = "array", 
+                            categoryarray = order, type = "category", autorange = "reversed"),
+               xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
+               autosize = F, margin = list(l = 235))
   })
   
   ######################
