@@ -18,57 +18,41 @@ library(DT)
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Biostatistics Team Project Overview"),
+  titlePanel("Biostatistics Team Time Tracking Summary"),
   
   
   sidebarLayout(
     sidebarPanel(
       
-      #select multiple statisticians
+      # select multiple statisticians
       uiOutput("statistician"),
       
-      #drop down menu for statistician
-      # selectInput("statistician", label = "Biostatistician",
-      #             choices = biostats, selected = "Jessica Lavery"),
-      
-      #drop down menu for PIs based on statistician
-      # uiOutput("PI_choice"),
-      
-      #drop down menu for projects based on statistician
-      # uiOutput("proj_choice")
-      
-      #drop down menu for years available
+      # date range of interest
       uiOutput("years")
     ),
     
-    #   # Show a plot of the generated distribution
+    #
     mainPanel(
       tabsetPanel(
-        tabPanel("Active", 
-                 # fluidRow(DT::dataTableOutput('table'))),
-                 DT::dataTableOutput('table')),
-        #plotlyOutput("activePlot")),
-        # tabPanel("Upcoming",tags$br(),
-        #          DT::dataTableOutput('table_upcoming')),
-        tabPanel("Inactive",
-                 DT::dataTableOutput('table2')),
+        # tabPanel("Active", 
+        #          DT::dataTableOutput('table')),
+        
+        # tabPanel("Inactive",
+        #          DT::dataTableOutput('table2')),
+        
         tabPanel("Percent effort",tags$br(),
                  radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
                               choices = c("PI", "Project", "Task"), inline = TRUE),
-                 #plotlyOutput("hrsPlot"),
-                 #potOutput("hrsPlot"),
-                 plotlyOutput("pieChart")),#by PI
+                 plotlyOutput("pieChart")),
+        
         tabPanel("Hours by Project",tags$br(),
-                 plotlyOutput("barChart")), #by Project
+                 plotlyOutput("barChart")), 
+        
         tabPanel("Timeline",tags$br(),
                  radioButtons("stratify", label = h4("Arrange plot by:"), 
                               choices = c("Project start time","PI"), inline = TRUE),
                  plotOutput("GanttChart"))
-                 
-
+        )
       )
-    )  
-    
-    #selectInput(inputID="stat_box",label="Biostatistician",choices=list("Jessica","Renee","Mike"))
-  )))
+    )))
 

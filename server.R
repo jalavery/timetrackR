@@ -34,29 +34,13 @@ shinyServer(function(input, output) {
                    selected = unique(tracker$statistician)[c(1,2)], multiple = TRUE)
   })
     
-  # list of PIs based on statistician choice
-  # output$PI_choice <- renderUI({
-  #   # filter on the statisticians selected and get unique list of PIs
-  #   pi_list <- tracker %>% 
-  #     filter(statistician %in% input$statistician) %>%
-  #     distinct(pi) %>% 
-  #     select(pi) %>% 
-  #     arrange(pi)
-    
-  #   selectizeInput("PI_choice", 
-  #                  label = "Investigator(s)", 
-  #                  choices = pi_list,
-  #                  selected = pull(pi_list, pi),
-  #                  multiple = TRUE)
-  # })
-  
-  # list of available years for menu on side
+
+  # date range of interest
   # start by selecting the previous year and curent year
   output$years <- renderUI({
     dateRangeInput(inputId = "years", 
                    label = "As of date: ",
-                   # default time from start of current quarter through current date
-                   # floor_date(Sys.Date(), unit = "quarter")
+                   # default time from 1 year prior through current date
                    start = Sys.Date() - years(1), end = Sys.Date(), min = NULL,
                    max = Sys.Date(), format = "yyyy-mm-dd", startview = "month",
                    weekstart = 0, language = "en", separator = " to ", width = NULL,
@@ -68,7 +52,6 @@ shinyServer(function(input, output) {
   ######################
   active_projs = reactive({
     proj_summary %>% filter(statistician %in% input$statistician, 
-                      # pi %in% input$PI_choice,
                       status == "Active") %>% 
       rename(`Statistician` = statistician, 
              `Start date` = proj_start,
@@ -90,7 +73,6 @@ shinyServer(function(input, output) {
   #########################
   upcoming_projs = reactive({
     proj_summary %>% filter(statistician %in% input$statistician, 
-                        # pi %in% input$PI_choice,
                         status == "Upcoming") %>% 
       rename(`Statistician` = statistician,
              `PI` = pi,
@@ -105,12 +87,11 @@ shinyServer(function(input, output) {
   })
   
   #########################
-  #completed project table#
+  # inactive project table#
   #########################
   inactive_projs = reactive({ 
     proj_summary %>% 
       filter(statistician %in% input$statistician, 
-             # pi %in% input$PI_choice, 
              status %in% c("Dropped", "Completed")) %>%
       rename(`Statistician` = statistician,
              PI = pi,
@@ -130,7 +111,7 @@ shinyServer(function(input, output) {
   # output$table2 <- renderTable(completed_projs(),colnames = TRUE)
   
   ######################
-  #      pie chart     #
+  #      % effort      #
   ######################
   
   # subset data for pie chart based on statistician and dates
@@ -141,7 +122,6 @@ shinyServer(function(input, output) {
            date <= input$years[2])
   
   # change grouping to sum depending on which summary level is selected
-  ## LEFT OFF HERE: TRYING TO LUMP PROJECTS/PIS  with <5% of time used within the date range
   switch(input$stratify_pct_effort,
          "PI" = pie %>% 
            drop_na(hours, pi) %>% 
@@ -150,7 +130,8 @@ shinyServer(function(input, output) {
            group_by(pi_lump, statistician) %>% 
            # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-           plot_ly(labels = ~ pi_lump, values = ~sum_hrs, type = 'pie') %>%
+           plot_ly(labels = ~ pi_lump, values = ~sum_hrs) %>%
+           add_pie(hole = 0.6) %>%
            layout(title = '% of total hours by faculty/principal investigator',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
@@ -161,7 +142,8 @@ shinyServer(function(input, output) {
            group_by(study_title_lump, statistician) %>% 
            # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-           plot_ly(labels = ~ study_title_lump, values = ~sum_hrs, type = 'pie') %>%
+           plot_ly(labels = ~ study_title_lump, values = ~ sum_hrs) %>%
+           add_pie(hole = 0.6) %>% 
            layout(title = '% of total hours by project',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
@@ -173,7 +155,8 @@ shinyServer(function(input, output) {
            group_by(project_phase_lump, statistician) %>% 
            # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-           plot_ly(labels = ~ project_phase_lump, values = ~sum_hrs, type = 'pie') %>%
+           plot_ly(labels = ~ project_phase_lump, values = ~sum_hrs) %>%
+           add_pie(hole = 0.6) %>%
            layout(title = '% of total hours by project phase',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
@@ -187,25 +170,43 @@ shinyServer(function(input, output) {
       # dont want to show randomization and prof dev here, just projects with a current status
       drop_na(current_status) %>% 
       filter(current_status != "Ongoing",
-             statistician %in% input$statistician, 
+             status == "Active",
+             statistician %in% input$statistician,
              date >= input$years[1],
              date <= input$years[2],
-             # pi %in% input$PI_choice
-             ) %>% 
+             ) %>%
       group_by(pi, current_status, as_of, study_title, statistician, final_product) %>% 
       summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-      mutate(status_desc = paste('<br>PI: ', pi, 
+      ungroup() %>% 
+      mutate(#study_title = stringr::str_wrap(study_title, width = 30),
+             status_desc = paste0('<br>PI: ', pi, 
                                  '<br>Hours: ', sum_hrs,
                                  '<br>Status: ', current_status, ' (', as_of, ')', '<br>Final product: ', final_product)) 
       
-    
-      #bars shrink in width when bar is also grouped by status -- why?? #changed barmode from group to relative
+      # create barchart in ggplot and annotate via ggplotly
+      barchart <- ggplot(data = bar, aes(x = study_title, y = sum_hrs, text = status_desc)) +
+        geom_col(aes(fill = pi), position = position_dodge2(width = 0.8, preserve = "single")) +
+        geom_text(aes(x = study_title, y = 10, label = study_title), size = 3,
+        hjust = 0.5, vjust = 0.5, 
+        position = position_dodge(width = 1)
+        # position = position_dodge(width = 1),
+        # position = position_fill(vjust = 4.5)
+                                           )  +
+        labs(x = "Project",
+             y = "Total number of hours during date range",
+             caption = "Projects are color coded by principal investigator.") + 
+        # alt viz: lollipop graph
+        # geom_segment(aes(y = 0, yend = sum_hrs, xend = study_title, x = study_title)) +
+        # geom_point( size = 2, alpha = 0.6) +
+        coord_flip() +
+        mskRvis::theme_msk() +
+        theme(legend.position = "none",
+              axis.text.y = element_blank()) 
+        # facet_grid(pi ~ ., scales = "free", space = "free", switch = "y")
+        # barchart
       
-      plot_ly(data = bar, y = ~study_title, x = ~sum_hrs, type = 'bar', split = ~pi, hoverinfo = "text", 
-              text = ~status_desc, height = 800) %>%
-        layout(yaxis = list(title = "", categoryorder = "category descending", categoryarray = order, type = "category", autorange = "reversed"),
-               xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
-               autosize = F, margin = list(l = 235))
+      # add hover feature via ggplotly
+      ggplotly(barchart, tooltip = "text")
   })
   
   ######################
@@ -249,8 +250,8 @@ shinyServer(function(input, output) {
     
     # sort by selected variable (project start time, PI)
     switch(input$stratify,
-           "Project start time" = phase2 %>% arrange(mindt),
-           "PI" = phase2 %>% arrange(pi_last))
+           "Project start time" = phase2 %>% mutate(y_new = fct_reorder(y_new, mindt)),
+           "PI" = phase2 %>% arrange(pi_last) %>% mutate(y_new = factor(y_new)))
     
     ggplot(phase2) +
       geom_segment(aes(x = start_dt, xend = end_dt, 
@@ -261,10 +262,6 @@ shinyServer(function(input, output) {
             legend.position = "bottom",
             legend.title = element_blank()) +
       scale_x_date(breaks = "2 months", date_labels = "%b %Y") +
-      # facet_grid(switch(input$stratify,
-      #                   "PI" = pi_last ~ ., 
-      #                   "Status" = status ~.),
-      #            space  =  "free", scales = "free_y") +
       scale_colour_discrete(breaks = c("Project planning", "Grant preparation", "Analysis", "Manuscript preparation", "Revisions"))  +  
       scale_alpha_discrete(range = c(1, 0.55), guide = FALSE)
   },

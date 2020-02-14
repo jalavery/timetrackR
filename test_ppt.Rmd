@@ -1,0 +1,85 @@
+---
+title: "Example PowerPoint"
+author: Your Name
+date: "`r Sys.Date()`"
+output:
+  mskRvis::msk_powerpoint_presentation:
+      template: "white"
+      toc: true
+---
+
+# Getting Started with PowerPoint
+
+## Basic setup
+
+- One pound sign creates a section slide
+    - This slide will only have the section title on it
+- Two pound signs create a title within a slide
+- A '-' creates bullets and '-' with two indents creates a sub-bullet
+    - sub-bullet
+
+## Two Columns Example
+
+:::::: {.columns}
+::: {.column width="50%"}
+Content of the left column.
+:::
+
+::: {.column width="50%"}
+Content of the right column.
+:::
+::::::
+
+## Other options 
+
+- Three dashes creates a new slide if there is no pound sign
+    - it creates a titleless slide
+
+---
+
+```{r, eval=FALSE, echo=TRUE}
+ # subset data for pie chart based on statistician and dates
+  output$pieChart <- renderPlotly({
+  pie <- tracker %>% 
+    filter(statistician %in% input$statistician, 
+           date >= input$years[1],
+           date <= input$years[2])
+  
+  # change grouping to sum depending on which summary level is selected
+  switch(input$stratify_pct_effort,
+         "PI" = pie %>% 
+           drop_na(hours, pi) %>% 
+           # collapse projects PIs accounting for <3% of time
+           mutate(pi_lump = fct_lump(pi, prop = 0.03, w = hours)) %>% 
+           group_by(pi_lump, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ pi_lump, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by faculty/principal investigator',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         "Project" = pie %>% 
+           # collapse projects accounting for <3% of time in interval
+           drop_na(hours, study_title) %>% 
+           mutate(study_title_lump = fct_lump(study_title, prop = 0.03, w = hours)) %>% 
+           group_by(study_title_lump, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ study_title_lump, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by project',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         "Task" = pie %>% 
+           mutate(project_phase = case_when(is.na(project_phase) ~ "Other",
+                                            TRUE ~ project_phase)) %>% 
+           # collapse tasks accounting for <3% of time
+           mutate(project_phase_lump = fct_lump(project_phase, prop = 0.03, w = hours)) %>% 
+           group_by(project_phase_lump, statistician) %>% 
+           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ project_phase_lump, values = ~sum_hrs, type = 'pie') %>%
+           layout(title = '% of total hours by project phase',
+                  xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
+  })
+```
