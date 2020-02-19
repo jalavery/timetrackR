@@ -34,23 +34,22 @@ shinyUI(fluidPage(
     #
     mainPanel(
       tabsetPanel(
-        # tabPanel("Active", 
-        #          DT::dataTableOutput('table')),
-        
-        # tabPanel("Inactive",
-        #          DT::dataTableOutput('table2')),
-        
         tabPanel("Percent effort",tags$br(),
                  radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
                               choices = c("PI", "Project", "Task"), inline = TRUE),
+                 textOutput("pie_text"),
                  plotlyOutput("pieChart")),
         
         tabPanel("Hours by Project",tags$br(),
+                 radioButtons("status_filter_bar", label = h4("Filter: "),
+                              choices = c("Active projects", "All projects"), inline = TRUE),
+                 textOutput("bar_text"),
                  plotlyOutput("barChart")),
         
         tabPanel("Timeline",tags$br(),
-                 radioButtons("stratify", label = h4("Arrange plot by:"),
-                              choices = c("Project start time","PI"), inline = TRUE),
+                 radioButtons("status_filter_gantt", label = h4("Filter: "),
+                              choices = c("Active projects", "All projects"), inline = TRUE),
+                 textOutput("gantt_text"),
                  plotOutput("GanttChart"))
         )
       )

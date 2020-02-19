@@ -96,7 +96,9 @@ inactive <- proj_summary %>%
 # 1 record per time entry with summary information merged on
 tracker <- left_join(time_tracker_long, 
                      proj_summary,
-                     by = c("study_title", "statistician")) #%>% 
+                     by = c("study_title", "statistician")) %>% 
+  mutate(date = as.Date(date))
+#%>% 
   # if we wanted to include items logged without a PI (e.g. biostats seminars, admin, other misc., fill in PI with the study title)
   # mutate(pi = case_when(!is.na(pi) ~ pi,
   #                       !is.na(study_title) ~ study_title))
