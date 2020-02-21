@@ -36,7 +36,7 @@ shinyUI(fluidPage(
       tabsetPanel(
         tabPanel("Percent effort",tags$br(),
                  radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
-                              choices = c("PI", "Project", "Task"), inline = TRUE),
+                              choices = c("PI", "Project", "Phase"), inline = TRUE),
                  textOutput("pie_text"),
                  plotlyOutput("pieChart")),
         

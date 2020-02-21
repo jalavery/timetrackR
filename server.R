@@ -93,7 +93,7 @@ shinyServer(function(input, output) {
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          
-         "Task" = pie %>% 
+         "Phase" = pie %>% 
            drop_na(hours, project_phase) %>% 
            mutate(project_phase = case_when(is.na(project_phase) ~ "Other",
                                             TRUE ~ project_phase)) %>% 

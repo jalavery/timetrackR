@@ -77,34 +77,13 @@ proj_summary <- bind_rows(project_summary_JL_mod, project_summary_MC_mod) %>%
          monthstocompletion = round(daystocompletion/365.25)) %>% 
   rename(total_hours = hours)
 
-# step 3 ----
-# separate projects into active, upcoming and inactive
-#active projects
-active <- proj_summary %>% 
-  filter(status == "Active")
-
-#upcoming projects
-upcoming <- proj_summary %>% 
-  filter(status == "Upcoming")
-
-#inactive (completed + dropped) projects
-inactive <- proj_summary %>% 
-  filter(status %in% c("Completed", "Dropped")) %>%  
-  select(statistician, study_title, pi, proj_start, current_status, proj_end, total_hours, weekstocompletion)
-
 # merge two spreadsheets together
 # 1 record per time entry with summary information merged on
 tracker <- left_join(time_tracker_long, 
                      proj_summary,
                      by = c("study_title", "statistician")) %>% 
   mutate(date = as.Date(date))
-#%>% 
-  # if we wanted to include items logged without a PI (e.g. biostats seminars, admin, other misc., fill in PI with the study title)
-  # mutate(pi = case_when(!is.na(pi) ~ pi,
-  #                       !is.na(study_title) ~ study_title))
 
-
-# step 4 -----
+# step 3 -----
 # save data to access in shiny app
-save(tracker, proj_summary, active, upcoming, inactive,
-     file = here::here("/tracker.rdata"))
+save(tracker, proj_summary, file = here::here("/tracker.rdata"))
