@@ -12,7 +12,7 @@ library(lubridate)
 # necessary variables are: date, hours, task, project, project phase
 
 #read in long hours sheet
-time_tracker_JL_long <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 1) %>% 
+time_tracker_JL_long <- read_xlsx(path = here::here("Project Tracker JL.xlsx"), sheet = 1) %>% 
   mutate(statistician = "Jessica Lavery")
 
 time_tracker_MC_long <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 1) %>% 
@@ -87,3 +87,4 @@ tracker <- left_join(time_tracker_long,
 # step 3 -----
 # save data to access in shiny app
 save(tracker, proj_summary, file = here::here("/tracker.rdata"))
+

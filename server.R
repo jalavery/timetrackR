@@ -152,7 +152,7 @@ shinyServer(function(input, output) {
       # create barchart for total number of hours
       plot_ly(data = bar, y = ~study_title_factor, x = ~sum_hrs, 
               type = 'bar', split = ~pi, hoverinfo = "text", 
-              text = ~status_desc, height = "85%") %>%
+              text = ~status_desc, height = "80%") %>%
         layout(yaxis = list(title = "", categoryorder = "array", 
                             categoryarray = order, type = "category", autorange = "reversed"),
                xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
