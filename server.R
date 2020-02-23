@@ -221,11 +221,12 @@ shinyServer(function(input, output) {
                        y = study_title, yend = study_title, 
                        colour = project_phase), size = 4) +
       theme_bw() +
-      scale_color_manual(values = mskRvis::msk_palette("contrast")) + 
       theme(legend.position = "bottom",
             legend.title = element_blank(),
+            legend.text = element_text(size = 12),
             axis.title = element_blank(), 
-            axis.ticks = element_blank()) +
+            axis.ticks = element_blank(),
+            axis.text = element_text(size = 11)) +
       scale_x_date(breaks = "3 months", date_labels = "%b %Y") 
     })
 }) #end of shiny server function, do not delete

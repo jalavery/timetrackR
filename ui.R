@@ -28,7 +28,10 @@ shinyUI(fluidPage(
       uiOutput("statistician"),
       
       # date range of interest
-      uiOutput("years")
+      uiOutput("years"),
+      
+      # width of sidebarPanel
+      width = 3
     ),
     
     #
