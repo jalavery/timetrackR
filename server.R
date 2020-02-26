@@ -89,7 +89,7 @@ shinyServer(function(input, output) {
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
            plot_ly(labels = ~ study_title_lump, values = ~ sum_hrs) %>%
            add_pie(hole = 0.6) %>% 
-           layout(title = '% of total hours by project',
+           layout(#title = '% of total hours by project',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          
@@ -104,7 +104,7 @@ shinyServer(function(input, output) {
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
            plot_ly(labels = ~ project_phase_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
-           layout(title = '% of total hours by project phase',
+           layout(#title = '% of total hours by project phase',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
   })
