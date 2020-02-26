@@ -12,10 +12,10 @@ library(lubridate)
 # necessary variables are: date, hours, task, project, project phase
 
 #read in long hours sheet
-time_tracker_JL_long <- read_xlsx(path = here::here("Project Tracker JL.xlsx"), sheet = 1) %>% 
+time_tracker_JL_long <- read_xlsx(path = here::here("data/Project Tracker JL.xlsx"), sheet = 1) %>% 
   mutate(statistician = "Jessica Lavery")
 
-time_tracker_MC_long <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 1) %>% 
+time_tracker_MC_long <- read_xlsx(path = here::here("data/Project Tracker MC.xlsx"), sheet = 1) %>% 
   mutate(statistician = "Mike Curry")
 
 # set data for each statistician together
@@ -29,17 +29,17 @@ time_tracker_long <- bind_rows(time_tracker_JL_long, time_tracker_MC_long) %>%
 # step 2 -------
 # read in summary spreadsheet with 1 record per project and its current status
 # necessary variables include: 
-project_summary_JL_a <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 2)
+project_summary_JL_a <- read_xlsx(path = "data/Project Tracker JL.xlsx", sheet = 2)
 # moved completed projects to a separate tab
-project_summary_JL_b <- read_xlsx(path = "G:/Project Tracker.xlsx", sheet = 3)
+project_summary_JL_b <- read_xlsx(path = "data/Project Tracker JL.xlsx", sheet = 3)
 
-project_summary_MC <- read_xlsx(path = here::here("Project Tracker MC.xlsx"), sheet = 2)
+project_summary_MC <- read_xlsx(path = here::here("data/Project Tracker MC.xlsx"), sheet = 2)
 
 #define variables in summary sheet
 #note: subtracting POSIXt dates gives difference in seconds, have to convert
 project_summary_JL_mod <- bind_rows(project_summary_JL_a, project_summary_JL_b) %>% 
   janitor::clean_names() %>% 
-  select(-priority, -group, -lead_stats, -second_stats, -in_my_court, -protocol_no, -dataset, -path_to_files, -notes, -protocol_status) %>% 
+  select(-priority, -group, -lead_stats, -second_stats, -in_my_court, -protocol_no, -dataset, -protocol_status) %>% 
   mutate(statistician = "Jessica Lavery",
          init = ifelse(statistician == "Jessica Lavery", "JL", "UNK"),
          proj_start = as.Date(project_initiated),

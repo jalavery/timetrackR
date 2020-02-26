@@ -51,7 +51,7 @@ shinyServer(function(input, output) {
           input$stratify_pct_effort, " for ",
           paste0(input$statistician, collapse = " and "), 
           " between ",
-          paste0(as.character(input$years), collapse = " and "), "."
+          paste0(as.character(input$years), collapse = " and ")
     )
   })
   
@@ -76,7 +76,7 @@ shinyServer(function(input, output) {
            summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>%
            plot_ly(labels = ~pi_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
-           layout(title = "Percent Effort",
+           layout(#title = "Percent Effort",
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          
@@ -119,7 +119,7 @@ shinyServer(function(input, output) {
           str_to_lower(input$status_filter_bar), " for ",
           paste0(input$statistician, collapse = " and "), 
           " between ",
-          paste0(as.character(input$years), collapse = " and "), "."
+          paste0(as.character(input$years), collapse = " and ")
     )
   })
   
@@ -169,7 +169,7 @@ shinyServer(function(input, output) {
           str_to_lower(input$status_filter_gantt), " for ",
           paste0(input$statistician, collapse = " and "), 
           " between ",
-          paste0(as.character(input$years), collapse = " and "), "."
+          paste0(as.character(input$years), collapse = " and ")
     )
   })
   
