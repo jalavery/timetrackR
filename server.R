@@ -165,7 +165,7 @@ shinyServer(function(input, output) {
   
   # print summary of figure
   output$gantt_text <- renderText({
-    paste("The following Gantt chart shows the timeline for ",
+    paste("The following project timeline shows data for ",
           str_to_lower(input$status_filter_gantt), " for ",
           paste0(input$statistician, collapse = " and "), 
           " between ",

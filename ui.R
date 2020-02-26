@@ -18,7 +18,7 @@ library(DT)
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Biostatistics Team Time Tracking Summary"),
+  titlePanel("timetrackR"),
   
   
   sidebarLayout(
