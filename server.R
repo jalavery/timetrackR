@@ -35,7 +35,7 @@ shinyServer(function(input, output) {
     dateRangeInput(inputId = "years", 
                    label = "Date range: ",
                    # default time from 1 year prior through current date
-                   start = Sys.Date() - days(500), end = Sys.Date() + 1, 
+                   start = Sys.Date() - years(1), end = Sys.Date() + 1, 
                    min = Sys.Date() - years(3), max = Sys.Date() + 1, 
                    format = "yyyy-mm-dd", startview = "year",
                    separator = " to ", width = NULL, autoclose = TRUE)
@@ -56,8 +56,8 @@ shinyServer(function(input, output) {
     paste("The following donut chart shows the breakdown of percent effort by ",
           input$stratify_pct_effort, " for ",
           paste0(input$user, collapse = " and "),
-          " between ", as.character(input$years),
-          paste0(as.character(input$years), collapse = " and ")
+          " between ", 
+          paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
   })
   
@@ -125,7 +125,7 @@ shinyServer(function(input, output) {
           str_to_lower(input$status_filter_bar), " for ",
           paste0(input$user, collapse = " and "), 
           " between ",
-          paste0(as.character(input$years), collapse = " and ")
+          paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
   })
   
@@ -141,8 +141,8 @@ shinyServer(function(input, output) {
       drop_na(current_status) %>% 
       filter(current_status != "Ongoing",
              User %in% input$user,
-             # `Start date` >= input$years[1],
-             # `Start date` <= input$years[2],
+             `Start date` >= input$years[1],
+             `Start date` <= input$years[2],
              ) %>%
       group_by(Client, current_status, Project, User) %>% 
       summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
@@ -173,7 +173,7 @@ shinyServer(function(input, output) {
           str_to_lower(input$status_filter_gantt), " for ",
           paste0(input$user, collapse = " and "), 
           " between ",
-          paste0(as.character(input$years), collapse = " and ")
+          paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
   })
   
@@ -183,8 +183,8 @@ shinyServer(function(input, output) {
       filter(is.na(Tags) == FALSE, 
                !(Tags %in% c("Departmental seminars, service", "Professional development", "Randomization")),
                User %in% input$user,
-               # `Start date` >= input$years[1],
-               # `Start date` <= input$years[2]
+               `Start date` >= input$years[1],
+               `Start date` <= input$years[2]
              ) %>% 
       mutate(Tags = factor(case_when(Tags %in% c("Abstract", "Conference") ~ "Conference",
                                          Tags %in% c("Project closeout", "Publication") ~ as.character(NA),
