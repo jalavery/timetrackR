@@ -6,6 +6,14 @@ library(tidyverse)
 library(readxl)
 library(lubridate)
 
+# test import toggl csv
+tracker_toggl <- read_csv(here::here("data/Toggl_time_entries_2019-01-01_to_2019-12-31.csv")) %>% 
+  mutate(current_status = "Active",
+         Duration = period_to_seconds(hms(Duration))/(60^2))
+
+save(tracker_toggl, file = here::here("tracker_toggl.rdata"))
+
+
 
 # step 1 -------
 # read in spreadsheet with 1 record per task tracked for each statistician of interest for app

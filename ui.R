@@ -24,8 +24,8 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       
-      # select multiple statisticians
-      uiOutput("statistician"),
+      # select multiple users
+      uiOutput("user"),
       
       # date range of interest
       uiOutput("years"),
@@ -41,6 +41,7 @@ shinyUI(fluidPage(
                  radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
                               choices = c("PI", "Project", "Phase"), inline = TRUE),
                  textOutput("pie_text"),
+                 verbatimTextOutput("dateRangeText2"),
                  plotlyOutput("pieChart")),
         
         tabPanel("Hours by Project",tags$br(),

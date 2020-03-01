@@ -16,16 +16,16 @@ library(shiny)
 library(ggplot2)
 
 # load saved dataset with time tracking information
-load("tracker.rdata")
+load("tracker_toggl.rdata")
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
-  # statistician names
-  output$statistician <- renderUI({
-    selectizeInput("statistician", label = "Statistician(s)", 
-                   choices = unique(tracker$statistician),
-                   selected = unique(tracker$statistician)[c(1,2)], multiple = TRUE)
+  # User names
+  output$user <- renderUI({
+    selectizeInput("user", label = "User(s)", 
+                   choices = unique(tracker_toggl$User),
+                   selected = unique(tracker_toggl$User)[c(1,1)], multiple = TRUE)
   })
     
 
@@ -33,12 +33,18 @@ shinyServer(function(input, output) {
   # start by selecting the previous year and curent year
   output$years <- renderUI({
     dateRangeInput(inputId = "years", 
-                   label = "As of date: ",
+                   label = "Date range: ",
                    # default time from 1 year prior through current date
-                   start = Sys.Date() - years(1), end = Sys.Date(), 
-                   min = Sys.Date() - years(3), max = Sys.Date(), 
+                   start = Sys.Date() - days(500), end = Sys.Date() + 1, 
+                   min = Sys.Date() - years(3), max = Sys.Date() + 1, 
                    format = "yyyy-mm-dd", startview = "year",
                    separator = " to ", width = NULL, autoclose = TRUE)
+  })
+  
+  output$dateRangeText2 <- renderText({
+    paste("input$years is", 
+          as.character(input$years)
+    )
   })
 
   ######################
@@ -47,33 +53,33 @@ shinyServer(function(input, output) {
   
   # print summary of figure
   output$pie_text <- renderText({
-    paste("The following donut chart shows the breakdown of percent effort by ", 
+    paste("The following donut chart shows the breakdown of percent effort by ",
           input$stratify_pct_effort, " for ",
-          paste0(input$statistician, collapse = " and "), 
-          " between ",
+          paste0(input$user, collapse = " and "),
+          " between ", as.character(input$years),
           paste0(as.character(input$years), collapse = " and ")
     )
   })
   
-  # subset data for pie chart based on statistician, dates, and project status
+  # subset data for pie chart based on User, dates, and project status
   output$pieChart <- renderPlotly({
-    pie <- tracker %>% 
-      drop_na(date) %>% 
-      filter(statistician %in% input$statistician,
+    pie <- tracker_toggl %>% 
+      drop_na(`Start date`) %>% 
+      filter(User %in% input$user,
              # putting req around input removes warning about length
-                    date >= req(input$years[1]),
-                    date <= req(input$years[2])
+            `Start date` >= req(input$years[1]),
+            `Start date` <= req(input$years[2])
       )
     
   # change grouping to sum depending on which summary level is selected
   switch(input$stratify_pct_effort,
-         "PI" = pie %>% 
-           drop_na(hours, pi) %>% 
+          "PI" = pie %>% 
+           drop_na(Duration, Client) %>% 
            # collapse projects PIs accounting for <3% of time
-           mutate(pi_lump = fct_lump(pi, prop = 0.03, w = hours)) %>% 
-           group_by(pi_lump, statistician) %>%
-           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
-           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>%
+           mutate(pi_lump = fct_lump(Client, prop = 0.03, w = Duration)) %>% 
+           group_by(pi_lump, User) %>%
+           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
            plot_ly(labels = ~pi_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
            layout(#title = "Percent Effort",
@@ -82,29 +88,29 @@ shinyServer(function(input, output) {
          
          "Project" = pie %>% 
            # collapse projects accounting for <3% of time in interval
-           drop_na(hours, study_title) %>% 
-           mutate(study_title_lump = fct_lump(study_title, prop = 0.03, w = hours)) %>% 
-           group_by(study_title_lump, statistician) %>% 
-           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
-           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-           plot_ly(labels = ~ study_title_lump, values = ~ sum_hrs) %>%
+           drop_na(Duration, Project) %>% 
+           mutate(Project_lump = fct_lump(Project, prop = 0.03, w = Duration)) %>% 
+           group_by(Project_lump, User) %>% 
+           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ Project_lump, values = ~ sum_hrs) %>%
            add_pie(hole = 0.6) %>% 
            layout(#title = '% of total hours by project',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
          
          "Phase" = pie %>% 
-           drop_na(hours, project_phase) %>% 
-           mutate(project_phase = case_when(is.na(project_phase) ~ "Other",
-                                            TRUE ~ project_phase)) %>% 
+           drop_na(Duration, Tags) %>% 
+           mutate(Tags = case_when(is.na(Tags) ~ "Other",
+                                            TRUE ~ Tags)) %>% 
            # collapse tasks accounting for <3% of time
-           mutate(project_phase_lump = fct_lump(project_phase, prop = 0.03, w = hours)) %>% 
-           group_by(project_phase_lump, statistician) %>% 
-           # re-calculate total number of hours across statistician/proj selected (have to recalc if >1 stat per proj)
-           summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
-           plot_ly(labels = ~ project_phase_lump, values = ~sum_hrs) %>%
+           mutate(Tags_lump = fct_lump(Tags, prop = 0.03, w = Duration)) %>% 
+           group_by(Tags_lump, User) %>% 
+           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+           plot_ly(labels = ~ Tags_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
-           layout(#title = '% of total hours by project phase',
+           layout(#title = '% of total hours by project Tags',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
   })
@@ -117,7 +123,7 @@ shinyServer(function(input, output) {
   output$bar_text <- renderText({
     paste("The following bar chart shows the total number of hours per project for ", 
           str_to_lower(input$status_filter_bar), " for ",
-          paste0(input$statistician, collapse = " and "), 
+          paste0(input$user, collapse = " and "), 
           " between ",
           paste0(as.character(input$years), collapse = " and ")
     )
@@ -126,32 +132,30 @@ shinyServer(function(input, output) {
   # figure
   output$barChart <- renderPlotly({
     switch(input$status_filter_bar,
-           "Active projects" = bar_filtered <- tracker %>% 
-             filter(status == "Active"),
-           "All projects" = bar_filtered <- tracker)
+           "Active projects" = bar_filtered <- tracker_toggl %>% 
+             filter(current_status == "Active"),
+           "All projects" = bar_filtered <- tracker_toggl)
     
     bar <- bar_filtered %>%
       # dont want to show randomization and prof dev here, just projects with a current status
       drop_na(current_status) %>% 
       filter(current_status != "Ongoing",
-             statistician %in% input$statistician,
-             date >= input$years[1],
-             date <= input$years[2],
+             User %in% input$user,
+             # `Start date` >= input$years[1],
+             # `Start date` <= input$years[2],
              ) %>%
-      group_by(pi, current_status, as_of, study_title, statistician, final_product) %>% 
-      summarize(sum_hrs = sum(hours, na.rm = TRUE)) %>% 
+      group_by(Client, current_status, Project, User) %>% 
+      summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
       ungroup() %>% 
       mutate(# order study title by PI to group in order long the axis
-        study_title_factor = fct_reorder(study_title, pi),
-        status_desc = paste0('<br>PI: ', pi, 
+        Project_factor = fct_reorder(Project, Client),
+        status_desc = paste0('<br>PI: ', Client, 
                              '<br>Hours: ', sum_hrs,
-                             '<br>Status: ', current_status, 
-                             ' (', as_of, ')', '<br>Final product: ', 
-                             final_product))
+                             '<br>Status: ', current_status))
     
       # create barchart for total number of hours
-      plot_ly(data = bar, y = ~study_title_factor, x = ~sum_hrs, 
-              type = 'bar', split = ~pi, hoverinfo = "text", 
+      plot_ly(data = bar, y = ~Project_factor, x = ~sum_hrs, 
+              type = 'bar', split = ~Client, hoverinfo = "text", 
               text = ~status_desc, height = "80%") %>%
         layout(yaxis = list(title = "", categoryorder = "array", 
                             categoryarray = order, type = "category", autorange = "reversed"),
@@ -167,7 +171,7 @@ shinyServer(function(input, output) {
   output$gantt_text <- renderText({
     paste("The following project timeline shows data for ",
           str_to_lower(input$status_filter_gantt), " for ",
-          paste0(input$statistician, collapse = " and "), 
+          paste0(input$user, collapse = " and "), 
           " between ",
           paste0(as.character(input$years), collapse = " and ")
     )
@@ -175,51 +179,52 @@ shinyServer(function(input, output) {
   
   # figure
   output$GanttChart <- renderPlot({
-    phase <- tracker %>%
-      filter(is.na(project_phase) == FALSE, 
-               !(project_phase %in% c("Departmental seminars, service", "Professional development", "Randomization")),
-               statistician %in% input$statistician,
-               date >= input$years[1],
-               date <= input$years[2]) %>% 
-      mutate(project_phase = factor(case_when(project_phase %in% c("Abstract", "Conference") ~ "Conference",
-                                         project_phase %in% c("Project closeout", "Publication") ~ as.character(NA),
-                                         project_phase %in% c("Grant preparation", "Project planning", "Protocol development") ~ "Project planning",
-                                         TRUE ~ project_phase), levels = c("Project planning", "Analysis", "Manuscript preparation", "Revisions", "Re-analysis"))) %>% 
-      drop_na(project_phase) %>% 
-      # select(project_phase) %>% gtsummary::tbl_summary()
-      # filter(study_title %in% c("Lung SMARCA4", "GENIE BPC")) %>% 
-      arrange(pi, study_title, date) %>% 
-      group_by(study_title, pi) %>%
-      # create numeric phase in order to get start/stop date when switching back and forth between phases
-      mutate(project_phase_number = cumsum(project_phase != lag(project_phase, default = first(project_phase))) + 1) %>% 
+    Tags <- tracker_toggl %>%
+      filter(is.na(Tags) == FALSE, 
+               !(Tags %in% c("Departmental seminars, service", "Professional development", "Randomization")),
+               User %in% input$user,
+               # `Start date` >= input$years[1],
+               # `Start date` <= input$years[2]
+             ) %>% 
+      mutate(Tags = factor(case_when(Tags %in% c("Abstract", "Conference") ~ "Conference",
+                                         Tags %in% c("Project closeout", "Publication") ~ as.character(NA),
+                                         Tags %in% c("Grant preparation", "Project planning", "Protocol development") ~ "Project planning",
+                                         TRUE ~ Tags), levels = c("Project planning", "Analysis", "Manuscript preparation", "Revisions", "Re-analysis"))) %>% 
+      drop_na(Tags) %>% 
+      # select(Tags) %>% gtsummary::tbl_summary()
+      # filter(Project %in% c("Lung SMARCA4", "GENIE BPC")) %>% 
+      arrange(Client, Project, `Start date`) %>% 
+      group_by(Project, Client) %>%
+      # create numeric Tags in order to get start/stop `Start date` when switching back and forth between Tagss
+      mutate(Tags_number = cumsum(Tags != lag(Tags, default = first(Tags))) + 1) %>% 
       ungroup() %>%
-      # get the start/stop date of each phase
-      group_by(pi, study_title, project_phase_number, project_phase, status) %>% 
-      summarize(start_dt = as.Date(min(date)), 
-                end_dt = as.Date(max(date))) %>% 
-      # if start/stop date are the same, add 1 day so that it shows up on figure
+      # get the start/stop `Start date` of each Tags
+      group_by(Client, Project, Tags_number, Tags, current_status) %>% 
+      summarize(start_dt = as.Date(min(`Start date`)), 
+                end_dt = as.Date(max(`Start date`))) %>% 
+      # if start/stop `Start date` are the same, add 1 day so that it shows up on figure
       mutate(end_dt = as.Date(ifelse(start_dt == end_dt, 
                                      end_dt + days(1), 
                                      end_dt), origin = "1970-01-01")) %>% 
       # get overall project start and stop dates
       ungroup() %>%
-      group_by(pi, study_title) %>%
+      group_by(Client, Project) %>%
       mutate(overall_start = as.Date(min(start_dt))) %>% 
       # order projects by start time
       ungroup() %>% 
-      mutate(study_title = fct_reorder(study_title, desc(start_dt)))
+      mutate(Project = fct_reorder(Project, desc(start_dt)))
     
     # filter by selected variable (active projects vs all projects)
     switch(input$status_filter_gantt,
-           "Active projects" = phase_filtered <- phase %>% 
-             filter(status == "Active"),
-           "All projects" = phase_filtered <- phase)
+           "Active projects" = Tags_filtered <- Tags %>% 
+             filter(current_status == "Active"),
+           "All projects" = Tags_filtered <- Tags)
     
     # create Gantt chart
-    ggplot(phase_filtered) +
+    ggplot(Tags_filtered) +
       geom_segment(aes(x = start_dt, xend = end_dt, 
-                       y = study_title, yend = study_title, 
-                       colour = project_phase), size = 4) +
+                       y = Project, yend = Project, 
+                       colour = Tags), size = 4) +
       theme_bw() +
       theme(legend.position = "bottom",
             legend.title = element_blank(),
