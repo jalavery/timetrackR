@@ -18,7 +18,7 @@ tracker_JL_long_toggl <- tracker_JL_long %>%
                               TRUE ~ paste0(floor(Hours), ":00:00")),
          # start time is required, arbitrarily set to 9am
          `Start Time` = "9:00:00") %>% 
-  sample_n(1) %>% 
+  # sample_n(1) %>% 
   select(-Detailed, -Date, -Hours)
 
 ### merge on client (PI) from project summary tab
@@ -35,7 +35,9 @@ project_summary_JL_mod <- bind_rows(project_summary_JL_a, project_summary_JL_b) 
 # merge PI onto hours log
 export_toggl_JL <- left_join(tracker_JL_long_toggl, 
                      project_summary_JL_mod,
-                     by = c("Project"))
+                     by = c("Project")) %>% 
+  mutate(Client = case_when(!is.na(Client) ~ Client,
+                            Project %in% c("Admin", "MSK") ~ "Admin"))
 
 
 ### export to csv to import into toggl
