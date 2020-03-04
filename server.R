@@ -16,16 +16,32 @@ library(shiny)
 library(ggplot2)
 
 # load saved dataset with time tracking information
-load("tracker_toggl.rdata")
+# load("tracker_toggl.rdata")
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
+  tracker_toggl <- reactive({
+    
+    req(input$file1)
+    
+    df <- read_csv(input$file1$datapath,
+                              # header = input$header,
+                              # sep = input$sep,
+                              # quote = input$quote
+    ) %>%
+      mutate(current_status = "Active",
+             # change duration to hours
+             Duration = period_to_seconds(hms(Duration))/(60^2))
+    
+    return(df)
+  })
+  
   # User names
   output$user <- renderUI({
     selectizeInput("user", label = "User(s)", 
-                   choices = unique(tracker_toggl$User),
-                   selected = unique(tracker_toggl$User)[c(1,1)], multiple = TRUE)
+                   choices = unique(tracker_toggl()$User),
+                   selected = unique(tracker_toggl()$User)[c(1,1)], multiple = TRUE)
   })
     
 
@@ -57,13 +73,14 @@ shinyServer(function(input, output) {
           input$stratify_pct_effort, " for ",
           paste0(input$user, collapse = " and "),
           " between ", 
-          paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
+          paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
+          ". Note that projects representing 3% or less are collapsed into the 'Other' category."
     )
   })
   
   # subset data for pie chart based on User, dates, and project status
   output$pieChart <- renderPlotly({
-    pie <- tracker_toggl %>% 
+    pie <- tracker_toggl() %>% 
       drop_na(`Start date`) %>% 
       filter(User %in% input$user,
              # putting req around input removes warning about length
@@ -132,9 +149,9 @@ shinyServer(function(input, output) {
   # figure
   output$barChart <- renderPlotly({
     switch(input$status_filter_bar,
-           "Active projects" = bar_filtered <- tracker_toggl %>% 
+           "Active projects" = bar_filtered <- tracker_toggl() %>% 
              filter(current_status == "Active"),
-           "All projects" = bar_filtered <- tracker_toggl)
+           "All projects" = bar_filtered <- tracker_toggl())
     
     bar <- bar_filtered %>%
       # dont want to show randomization and prof dev here, just projects with a current status
@@ -179,7 +196,7 @@ shinyServer(function(input, output) {
   
   # figure
   output$GanttChart <- renderPlot({
-    Tags <- tracker_toggl %>%
+    Tags <- tracker_toggl() %>%
       filter(is.na(Tags) == FALSE, 
                !(Tags %in% c("Departmental seminars, service", "Professional development", "Randomization")),
                User %in% input$user,

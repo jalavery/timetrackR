@@ -24,6 +24,16 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       
+      # file input
+      fileInput("file1", "Choose CSV File",
+                multiple = TRUE,
+                accept = c("text/csv",
+                           "text/comma-separated-values,text/plain",
+                           ".csv")),
+      
+      # Horizontal line ----
+      tags$hr(),
+      
       # select multiple users
       uiOutput("user"),
       
