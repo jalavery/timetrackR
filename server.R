@@ -15,14 +15,12 @@ library(rsconnect)
 library(shiny)
 library(ggplot2)
 
-# load saved dataset with time tracking information
-# load("tracker_toggl.rdata")
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
   
+  # read in tracking data from Toggl
   tracker_toggl <- reactive({
-    
     req(input$file1)
     
     df <- read_csv(input$file1$datapath,
@@ -30,9 +28,8 @@ shinyServer(function(input, output) {
                               # sep = input$sep,
                               # quote = input$quote
     ) %>%
-      mutate(current_status = "Active",
-             # change duration to hours
-             Duration = period_to_seconds(hms(Duration))/(60^2))
+      # change duration to hours
+      mutate(Duration = period_to_seconds(hms(Duration))/(60^2))
     
     return(df)
   })
@@ -49,12 +46,7 @@ shinyServer(function(input, output) {
                    format = "yyyy-mm-dd", startview = "year",
                    separator = " to ", width = NULL, autoclose = TRUE)
   })
-  
-  output$dateRangeText2 <- renderText({
-    paste("input$years is", 
-          as.character(input$years)
-    )
-  })
+
 
   ######################
   #      % effort      #
@@ -70,7 +62,7 @@ shinyServer(function(input, output) {
     )
   })
   
-  # subset data for pie chart based on dates, and project status
+  # subset data for pie chart based on dates
   output$pieChart <- renderPlotly({
     pie <- tracker_toggl() %>% 
       drop_na(`Start date`) %>% 
@@ -81,7 +73,7 @@ shinyServer(function(input, output) {
     
   # change grouping to sum depending on which summary level is selected
   switch(input$stratify_pct_effort,
-          "PI" = pie %>% 
+          "Client" = pie %>% 
            drop_na(Duration, Client) %>% 
            # collapse projects PIs accounting for <3% of time
            mutate(pi_lump = fct_lump(Client, prop = 0.03, w = Duration)) %>% 
@@ -120,8 +112,23 @@ shinyServer(function(input, output) {
            add_pie(hole = 0.6) %>%
            layout(#title = '% of total hours by project Tags',
                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)))
-  })
+                  yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
+         
+    "Task" = pie %>% 
+      drop_na(Duration, Tags) %>% 
+      mutate(description = case_when(is.na(Description) ~ "Other",
+                              TRUE ~ Description)) %>% 
+      # collapse tasks accounting for <3% of time
+      mutate(desc_lump = fct_lump(description, prop = 0.03, w = Duration)) %>% 
+      group_by(desc_lump) %>% 
+      # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
+      summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+      plot_ly(labels = ~ desc_lump, values = ~sum_hrs) %>%
+      add_pie(hole = 0.6) %>%
+      layout(#title = '% of total hours by project Tags',
+        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+  )})
   
   ########################
   # horizontal bar chart #
@@ -129,37 +136,40 @@ shinyServer(function(input, output) {
   
   # print summary of figure
   output$bar_text <- renderText({
-    paste("The following bar chart shows the total number of hours per project for ", 
-          str_to_lower(input$status_filter_bar),
-          " between ",
+    paste("The following bar chart shows the total number of hours per project between ",          " between ",
           paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
   })
   
   # figure
   output$barChart <- renderPlotly({
+    # switch depending on input selected
     switch(input$status_filter_bar,
-           "Active projects" = bar_filtered <- tracker_toggl() %>% 
-             filter(current_status == "Active"),
-           "All projects" = bar_filtered <- tracker_toggl())
-    
-    bar <- bar_filtered %>%
-      # dont want to show randomization and prof dev here, just projects with a current status
-      drop_na(current_status) %>% 
-      filter(current_status != "Ongoing",
-             `Start date` >= input$years[1],
-             `Start date` <= input$years[2],
-             ) %>%
-      group_by(Client, current_status, Project) %>% 
-      summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-      ungroup() %>% 
-      mutate(# order study title by PI to group in order long the axis
-        Project_factor = fct_reorder(Project, Client),
-        status_desc = paste0('<br>PI: ', Client, 
-                             '<br>Hours: ', sum_hrs,
-                             '<br>Status: ', current_status))
-    
-      # create barchart for total number of hours
+         "Client" = bar <- tracker_toggl() %>%
+           filter(`Start date` >= input$years[1],
+                  `Start date` <= input$years[2]) %>%
+           group_by(Client) %>% 
+           summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+           ungroup() %>% 
+           arrange(Client) %>% 
+           # order study title by client to group in order long the axis
+           mutate(Project_factor = as.factor(Client),
+                  status_desc = paste0('<br>Client: ', Client, 
+                                       '<br>Hours: ', sum_hrs)),
+         
+         "Project" = bar <- tracker_toggl() %>%
+           filter(`Start date` >= input$years[1],
+                  `Start date` <= input$years[2]) %>%
+           group_by(Client, Project) %>% 
+           summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+           ungroup() %>% 
+           # order study title by client to group in order long the axis
+           mutate(Project_factor = fct_reorder(Project, Client),
+                  status_desc = paste0('<br>Client: ', Client, 
+                                       '<br>Hours: ', sum_hrs))
+         )
+  
+     # create barchart for total number of hours
       plot_ly(data = bar, y = ~Project_factor, x = ~sum_hrs, 
               type = 'bar', split = ~Client, hoverinfo = "text", 
               text = ~status_desc, height = "80%") %>%
@@ -203,7 +213,7 @@ shinyServer(function(input, output) {
       mutate(Tags_number = cumsum(Tags != lag(Tags, default = first(Tags))) + 1) %>% 
       ungroup() %>%
       # get the start/stop `Start date` of each Tags
-      group_by(Client, Project, Tags_number, Tags, current_status) %>% 
+      group_by(Client, Project, Tags_number, Tags) %>% 
       summarize(start_dt = as.Date(min(`Start date`)), 
                 end_dt = as.Date(max(`Start date`))) %>% 
       # if start/stop `Start date` are the same, add 1 day so that it shows up on figure
@@ -218,7 +228,7 @@ shinyServer(function(input, output) {
       ungroup() %>% 
       mutate(Project = fct_reorder(Project, desc(start_dt)))
     
-    # create Gantt chart
+    # create timeline
     ggplot(for_timeline) +
       geom_segment(aes(x = start_dt, xend = end_dt, 
                        y = Project, yend = Project, 
