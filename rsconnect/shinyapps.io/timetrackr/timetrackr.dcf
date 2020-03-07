@@ -5,6 +5,6 @@ account: timetrackr
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1918059
-bundleId: 2860129
+bundleId: 2860191
 url: https://timetrackr.shinyapps.io/timetrackr/
-when: 1583607108.43282
+when: 1583610165.83161
