@@ -34,9 +34,6 @@ shinyUI(fluidPage(
       # Horizontal line ----
       tags$hr(),
       
-      # select multiple users
-      uiOutput("user"),
-      
       # date range of interest
       uiOutput("years"),
       
@@ -60,8 +57,6 @@ shinyUI(fluidPage(
                  plotlyOutput("barChart")),
         
         tabPanel("Timeline",tags$br(),
-                 radioButtons("status_filter_gantt", label = h4("Filter: "),
-                              choices = c("Active projects", "All projects"), inline = TRUE),
                  textOutput("gantt_text"),
                  plotOutput("GanttChart"))
         )

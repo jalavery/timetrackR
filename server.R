@@ -37,13 +37,6 @@ shinyServer(function(input, output) {
     return(df)
   })
   
-  # User names
-  output$user <- renderUI({
-    selectizeInput("user", label = "User(s)", 
-                   choices = unique(tracker_toggl()$User),
-                   selected = unique(tracker_toggl()$User)[c(1,1)], multiple = TRUE)
-  })
-    
 
   # date range of interest
   # start by selecting the previous year and curent year
@@ -51,7 +44,7 @@ shinyServer(function(input, output) {
     dateRangeInput(inputId = "years", 
                    label = "Date range: ",
                    # default time from 1 year prior through current date
-                   start = Sys.Date() - years(1), end = Sys.Date() + 1, 
+                   start = Sys.Date() - months(6), end = Sys.Date() + 1, 
                    min = Sys.Date() - years(3), max = Sys.Date() + 1, 
                    format = "yyyy-mm-dd", startview = "year",
                    separator = " to ", width = NULL, autoclose = TRUE)
@@ -70,20 +63,18 @@ shinyServer(function(input, output) {
   # print summary of figure
   output$pie_text <- renderText({
     paste("The following donut chart shows the breakdown of percent effort by ",
-          input$stratify_pct_effort, " for ",
-          paste0(input$user, collapse = " and "),
+          input$stratify_pct_effort,
           " between ", 
           paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
           ". Note that projects representing 3% or less are collapsed into the 'Other' category."
     )
   })
   
-  # subset data for pie chart based on User, dates, and project status
+  # subset data for pie chart based on dates, and project status
   output$pieChart <- renderPlotly({
     pie <- tracker_toggl() %>% 
       drop_na(`Start date`) %>% 
-      filter(User %in% input$user,
-             # putting req around input removes warning about length
+      filter(# putting req around input removes warning about length
             `Start date` >= req(input$years[1]),
             `Start date` <= req(input$years[2])
       )
@@ -94,8 +85,8 @@ shinyServer(function(input, output) {
            drop_na(Duration, Client) %>% 
            # collapse projects PIs accounting for <3% of time
            mutate(pi_lump = fct_lump(Client, prop = 0.03, w = Duration)) %>% 
-           group_by(pi_lump, User) %>%
-           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           group_by(pi_lump) %>%
+           # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
            plot_ly(labels = ~pi_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
@@ -107,8 +98,8 @@ shinyServer(function(input, output) {
            # collapse projects accounting for <3% of time in interval
            drop_na(Duration, Project) %>% 
            mutate(Project_lump = fct_lump(Project, prop = 0.03, w = Duration)) %>% 
-           group_by(Project_lump, User) %>% 
-           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           group_by(Project_lump) %>% 
+           # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
            plot_ly(labels = ~ Project_lump, values = ~ sum_hrs) %>%
            add_pie(hole = 0.6) %>% 
@@ -122,8 +113,8 @@ shinyServer(function(input, output) {
                                             TRUE ~ Tags)) %>% 
            # collapse tasks accounting for <3% of time
            mutate(Tags_lump = fct_lump(Tags, prop = 0.03, w = Duration)) %>% 
-           group_by(Tags_lump, User) %>% 
-           # re-calculate total number of hours across User/proj selected (have to recalc if >1 stat per proj)
+           group_by(Tags_lump) %>% 
+           # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
            plot_ly(labels = ~ Tags_lump, values = ~sum_hrs) %>%
            add_pie(hole = 0.6) %>%
@@ -139,8 +130,7 @@ shinyServer(function(input, output) {
   # print summary of figure
   output$bar_text <- renderText({
     paste("The following bar chart shows the total number of hours per project for ", 
-          str_to_lower(input$status_filter_bar), " for ",
-          paste0(input$user, collapse = " and "), 
+          str_to_lower(input$status_filter_bar),
           " between ",
           paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
@@ -157,11 +147,10 @@ shinyServer(function(input, output) {
       # dont want to show randomization and prof dev here, just projects with a current status
       drop_na(current_status) %>% 
       filter(current_status != "Ongoing",
-             User %in% input$user,
              `Start date` >= input$years[1],
              `Start date` <= input$years[2],
              ) %>%
-      group_by(Client, current_status, Project, User) %>% 
+      group_by(Client, current_status, Project) %>% 
       summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
       ungroup() %>% 
       mutate(# order study title by PI to group in order long the axis
@@ -187,8 +176,7 @@ shinyServer(function(input, output) {
   # print summary of figure
   output$gantt_text <- renderText({
     paste("The following project timeline shows data for ",
-          str_to_lower(input$status_filter_gantt), " for ",
-          paste0(input$user, collapse = " and "), 
+          str_to_lower(input$status_filter_gantt), 
           " between ",
           paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
     )
@@ -196,10 +184,9 @@ shinyServer(function(input, output) {
   
   # figure
   output$GanttChart <- renderPlot({
-    Tags <- tracker_toggl() %>%
+    for_timeline <- tracker_toggl() %>%
       filter(is.na(Tags) == FALSE, 
                !(Tags %in% c("Departmental seminars, service", "Professional development", "Randomization")),
-               User %in% input$user,
                `Start date` >= input$years[1],
                `Start date` <= input$years[2]
              ) %>% 
@@ -231,24 +218,18 @@ shinyServer(function(input, output) {
       ungroup() %>% 
       mutate(Project = fct_reorder(Project, desc(start_dt)))
     
-    # filter by selected variable (active projects vs all projects)
-    switch(input$status_filter_gantt,
-           "Active projects" = Tags_filtered <- Tags %>% 
-             filter(current_status == "Active"),
-           "All projects" = Tags_filtered <- Tags)
-    
     # create Gantt chart
-    ggplot(Tags_filtered) +
+    ggplot(for_timeline) +
       geom_segment(aes(x = start_dt, xend = end_dt, 
                        y = Project, yend = Project, 
                        colour = Tags), size = 4) +
       theme_bw() +
       theme(legend.position = "bottom",
             legend.title = element_blank(),
-            legend.text = element_text(size = 12),
+            legend.text = element_text(size = 14),
             axis.title = element_blank(), 
             axis.ticks = element_blank(),
-            axis.text = element_text(size = 11)) +
+            axis.text = element_text(size = 12)) +
       scale_x_date(breaks = "3 months", date_labels = "%b %Y") 
     })
 }) #end of shiny server function, do not delete
