@@ -28,18 +28,60 @@ dashboardPage(
                        separator = " to ", width = NULL, autoclose = TRUE),
         sidebarMenu(
             menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
-            menuItem("Client", tabName = "client", icon = icon("th")),
-            menuItem("Project", tabName = "project", icon = icon("th")),
-            menuItem("Phase", tabName = "phase", icon = icon("th")),
-            menuItem("Task", tabName = "task", icon = icon("th")),
             menuItem("About", tabName = "about", icon = icon("info"))
         )
     ),
     dashboardBody(
         tabItems(
+            
             # Dashboard tab content
             tabItem(tabName = "dashboard",
                     fluidRow(
+                        # infoboxes
+                        infoBoxOutput("top_client"),
+                        infoBoxOutput("top_project"),
+                        infoBoxOutput("top_task")
+                        ),
+                    fluidRow(
+                        box(
+                            title = "Percent Effort", status = "primary", solidHeader = TRUE,
+                            collapsible = TRUE,
+                            radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
+                                         choices = c("Client", "Project", "Phase", "Task"), inline = TRUE),
+                            textOutput("pie_text"),
+                            plotlyOutput("pieChart")#,
+                            # width = 6, height = 500
+                        ),
+                        
+                        box(
+                            title = "Total Hours", status = "primary", solidHeader = TRUE,
+                            collapsible = TRUE,
+                            radioButtons("status_filter_bar", label = h4("Filter: "),
+                                         choices = c("Client", "Project"), inline = TRUE),
+                            plotlyOutput("barChart")#,
+                            # width = 6, height = 500
+                        ), 
+                        
+                        box(
+                            title = "Project Timeline", status = "warning", solidHeader = TRUE,
+                            textOutput("output$timeline_text"),
+                            plotOutput("timeline")#,
+                            # width = 12
+                        )
+                    )
+            ),
+            
+            # About tab content
+            tabItem(tabName = "about",
+                    fluidRow(
+                        box(title = "About timetrackR", 
+                            "This dashboard was built in RStudio primarily with shiny, shinydashboard, and the tidyverse.",
+                            br(),
+                            <img src = "timetrackR.png">,
+                            "This app was originally presented at RLadies New York in February 2020. The presentation can be found [here](www.github.com/jalavery/timetrackr)"
+                            ),
+                        box(title = "About me"
+                            ),
                         box(title = "Instructions",
                             "This app is based on tracking your time in Toggl and exporting that data for custom visualizations.",
                             br(),
@@ -49,70 +91,6 @@ dashboardPage(
                             "3. At the top of the page, go to Detailed reports", br(), br(),
                             "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
                             "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
-                    )
-            ),
-            
-            # Client tab content
-            tabItem(tabName = "client",
-                    fluidRow(
-                        box(
-                            title = "Percent Effort", status = "primary", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            textOutput("pie_text"),
-                            plotlyOutput("pieChart_client"),
-                            width = 6, height = 500
-                        ),
-                        
-                        box(
-                            title = "Total Hours", status = "primary", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            plotlyOutput("barChart_client"),
-                            width = 6, height = 500
-                        ), 
-                        
-                        box(
-                            title = "Project Timeline", status = "warning", solidHeader = TRUE,
-                            textOutput("output$gantt_text"),
-                            plotOutput("timeline_client"),
-                            width = 12
-                        )
-                    )
-            ),
-            
-            # Project tab content
-            tabItem(tabName = "project",
-                    h2("Widgets tab"),
-                    plotOutput("plot2")
-            # fluidRow(
-                # box(
-                    # title = "Percent Effort", status = "primary", solidHeader = TRUE,
-                    # collapsible = TRUE,
-                    # textOutput("pie_text"),
-                    # renderPlot("plot1"),
-                    # plotlyOutput("pieChart_client"),
-                    # width = 6, height = 500
-                # )
-            # )
-            ),
-            
-            # Phase tab content
-            tabItem(tabName = "phase",
-                    h2("Phase tab content")
-            ),
-            
-            # Task tab content
-            tabItem(tabName = "task",
-                    h2("Task tab content")
-            ),
-            
-            # About tab content
-            tabItem(tabName = "about",
-                    fluidRow(
-                        box(title = "About timetrackR", 
-                            "This dashboard was built in RStudio primarily with shiny, shinydashboard, and the tidyverse."
-                            ),
-                        box(title = "About me"
-                            )
             ))
         )
     )
