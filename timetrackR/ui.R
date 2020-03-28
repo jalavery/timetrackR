@@ -18,14 +18,14 @@ dashboardPage(
                   accept = c("text/csv",
                              "text/comma-separated-values,text/plain",
                              ".csv")),
-        uiOutput("years"),
-        # dateRangeInput(inputId = "years", 
-        #                label = "Date range: ",
-        #                # default time from 1 year prior through current date
-        #                start = Sys.Date() - months(6), end = Sys.Date() + 1, 
-        #                min = Sys.Date() - years(3), max = Sys.Date() + 1, 
-        #                format = "yyyy-mm-dd", startview = "year",
-        #                separator = " to ", width = NULL, autoclose = TRUE),
+        # uiOutput("years"),
+        dateRangeInput(inputId = "years",
+                       label = "Date range: ",
+                       # default time from 1 year prior through current date
+                       start = Sys.Date() - months(6), end = Sys.Date() + 1,
+                       min = Sys.Date() - years(3), max = Sys.Date() + 1,
+                       format = "yyyy-mm-dd", startview = "year",
+                       separator = " to ", width = NULL, autoclose = TRUE),
         sidebarMenu(
             menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
             menuItem("Client", tabName = "client", icon = icon("th")),
@@ -43,12 +43,12 @@ dashboardPage(
                         box(title = "Instructions",
                             "This app is based on tracking your time in Toggl and exporting that data for custom visualizations.",
                             br(),
-                            "To prepare your data for use in the app:", br(),
-                            "1. Navigate to toggl.com", br(),
-                            "2. Navigate to the Reports menu item", br(),
-                            "3. At the top of the page, go to Detailed reports", br(),
-                            "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(),
-                            "5. Upload that CSV file in timetrackR and voila!")
+                            "To prepare your data for use in the app:", br(), br(),
+                            "1. Navigate to toggl.com", br(), br(),
+                            "2. Navigate to the Reports menu item", br(), br(),
+                            "3. At the top of the page, go to Detailed reports", br(), br(),
+                            "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
+                            "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
                     )
             ),
             
@@ -81,15 +81,18 @@ dashboardPage(
             
             # Project tab content
             tabItem(tabName = "project",
-                    fluidRow(
-                        box(
-                            title = "Percent Effort", status = "primary", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            textOutput("pie_text"),
-                            plotlyOutput("pieChart_project"),
-                            width = 6, height = 500
-                        )
-                    )
+                    h2("Widgets tab"),
+                    plotOutput("plot2")
+            # fluidRow(
+                # box(
+                    # title = "Percent Effort", status = "primary", solidHeader = TRUE,
+                    # collapsible = TRUE,
+                    # textOutput("pie_text"),
+                    # renderPlot("plot1"),
+                    # plotlyOutput("pieChart_client"),
+                    # width = 6, height = 500
+                # )
+            # )
             ),
             
             # Phase tab content

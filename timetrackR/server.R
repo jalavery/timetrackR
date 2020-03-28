@@ -1,5 +1,12 @@
 library(shiny)
 library(shinydashboard)
+library(plotly)
+library(tidyverse)
+library(rsconnect)
+library(DT)
+library(lubridate)
+library(rsconnect)
+library(ggplot2)
 
 server <- function(input, output) {
     # read in tracking data from Toggl
@@ -19,17 +26,16 @@ server <- function(input, output) {
     
     # date range of interest
     # start by selecting the previous year and curent year
-    output$years <- renderUI({
-        input$years
-    })
-    
-    # from example
-    set.seed(122)
-    histdata <- rnorm(500)
+    # output$years <- renderUI({
+    #     input$years
+    # })
     
     output$plot1 <- renderPlot({
-        data <- histdata[seq_len(input$slider)]
-        hist(data)
+        hist(mtcars$mpg)
+    })
+    
+    output$plot2 <- renderPlot({
+        hist(mtcars$mpg)
     })
     
     # read in data
@@ -50,15 +56,15 @@ server <- function(input, output) {
     
     # date range of interest
     # start by selecting the previous year and curent year
-    output$years <- renderUI({
-        dateRangeInput(inputId = "years",
-                       label = "Date range: ",
-                       # default time from 1 year prior through current date
-                       start = Sys.Date() - months(6), end = Sys.Date() + 1,
-                       min = Sys.Date() - years(3), max = Sys.Date() + 1,
-                       format = "yyyy-mm-dd", startview = "year",
-                       separator = " to ", width = NULL, autoclose = TRUE)
-    })
+    # output$years <- renderUI({
+        # dateRangeInput(inputId = "years",
+        #                label = "Date range: ",
+        #                # default time from 1 year prior through current date
+        #                start = Sys.Date() - months(6), end = Sys.Date() + 1,
+        #                min = Sys.Date() - years(3), max = Sys.Date() + 1,
+        #                format = "yyyy-mm-dd", startview = "year",
+        #                separator = " to ", width = NULL, autoclose = TRUE)
+    # })
     
     ######################
     #      % effort      #
