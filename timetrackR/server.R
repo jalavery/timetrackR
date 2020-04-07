@@ -1,14 +1,15 @@
-library(shiny)
-library(shinydashboard)
-library(plotly)
-library(tidyverse)
-library(rsconnect)
-library(DT)
-library(lubridate)
-library(rsconnect)
-library(ggplot2)
-
 server <- function(input, output) {
+    # load libraries (run this before running shiny app)
+    library(shiny)
+    library(shinydashboard)
+    library(plotly)
+    library(tidyverse)
+    library(rsconnect)
+    library(DT)
+    library(lubridate)
+    library(rsconnect)
+    library(ggplot2)
+
     # read in tracking data from Toggl
     tracker_toggl <- reactive({
         req(input$file1)
@@ -94,9 +95,19 @@ server <- function(input, output) {
     # print summary of figure
     # change to footnote?
     output$pie_text <- renderText({
+        pie <- tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            )
+        
         paste("The following donut chart shows the breakdown of percent effort by ",
               input$stratify_pct_effort,
               " between ", 
+              ### left off trying to get start date to correctly reflect start date in data,
+              ### rather than just the start date in the date window
+              # min(pie$`Start date`),
               paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
               ". Note that projects representing 3% or less are collapsed into the 'Other' category."
         )
@@ -105,12 +116,6 @@ server <- function(input, output) {
     # subset data for pie chart based on dates
     # update pie chart depending on input selected
     output$pieChart <- renderPlotly({
-        pie <- tracker_toggl() %>% 
-            drop_na(`Start date`) %>% 
-            filter(# putting req around input removes warning about length
-                `Start date` >= req(input$years[1]),
-                `Start date` <= req(input$years[2])
-            )
         
         # change grouping to sum depending on which summary level is selected
         switch(input$stratify_pct_effort,
@@ -121,7 +126,7 @@ server <- function(input, output) {
                    group_by(pi_lump) %>%
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
-                   plot_ly(labels = ~pi_lump, values = ~sum_hrs) %>%
+                   plot_ly(labels = ~pi_lump, values = ~round(sum_hrs)) %>%
                    add_pie(hole = 0.6) %>%
                    layout(#title = "Percent Effort",
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -134,7 +139,7 @@ server <- function(input, output) {
                    group_by(Project_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Project_lump, values = ~ sum_hrs) %>%
+                   plot_ly(labels = ~ Project_lump, values = ~round(sum_hrs)) %>%
                    add_pie(hole = 0.6) %>% 
                    layout(#title = '% of total hours by project',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -149,7 +154,7 @@ server <- function(input, output) {
                    group_by(Tags_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Tags_lump, values = ~sum_hrs) %>%
+                   plot_ly(labels = ~ Tags_lump, values = ~round(sum_hrs)) %>%
                    add_pie(hole = 0.6) %>%
                    layout(#title = '% of total hours by project Tags',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -164,7 +169,7 @@ server <- function(input, output) {
                    group_by(desc_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ desc_lump, values = ~sum_hrs) %>%
+                   plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs)) %>%
                    add_pie(hole = 0.6) %>%
                    layout(#title = '% of total hours by project Tags',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -196,7 +201,7 @@ server <- function(input, output) {
                    # order study title by client to group in order long the axis
                    mutate(Project_factor = as.factor(Client),
                           status_desc = paste0('<br>Client: ', Client, 
-                                               '<br>Hours: ', sum_hrs)),
+                                               '<br>Hours: ', round(sum_hrs))),
                
                "Project" = bar <- tracker_toggl() %>%
                    filter(`Start date` >= input$years[1],
@@ -207,7 +212,7 @@ server <- function(input, output) {
                    # order study title by client to group in order long the axis
                    mutate(Project_factor = fct_reorder(Project, Client),
                           status_desc = paste0('<br>Client: ', Client, 
-                                               '<br>Hours: ', sum_hrs))
+                                               '<br>Hours: ', round(sum_hrs)))
         )
         
         # create barchart for total number of hours

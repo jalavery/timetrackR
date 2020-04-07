@@ -22,7 +22,7 @@ dashboardPage(
         dateRangeInput(inputId = "years",
                        label = "Date range: ",
                        # default time from 1 year prior through current date
-                       start = Sys.Date() - months(6), end = Sys.Date() + 1,
+                       start = Sys.Date() - 1, end = Sys.Date() + 1,
                        min = Sys.Date() - years(3), max = Sys.Date() + 1,
                        format = "yyyy-mm-dd", startview = "year",
                        separator = " to ", width = NULL, autoclose = TRUE),
@@ -77,7 +77,7 @@ dashboardPage(
                         box(title = "About timetrackR", 
                             "This dashboard was built in RStudio primarily with shiny, shinydashboard, and the tidyverse.",
                             br(),
-                            <img src = "timetrackR.png">,
+                            # <img src = "timetrackR.png">,
                             "This app was originally presented at RLadies New York in February 2020. The presentation can be found [here](www.github.com/jalavery/timetrackr)"
                             ),
                         box(title = "About me"
@@ -90,7 +90,8 @@ dashboardPage(
                             "2. Navigate to the Reports menu item", br(), br(),
                             "3. At the top of the page, go to Detailed reports", br(), br(),
                             "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
-                            "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
+                            "5. Change the timeframe from 'This week' to 'This year'",
+                            "6. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
             ))
         )
     )
