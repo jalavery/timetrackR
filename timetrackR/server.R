@@ -95,13 +95,6 @@ server <- function(input, output) {
     # print summary of figure
     # change to footnote?
     output$pie_text <- renderText({
-        pie <- tracker_toggl() %>% 
-            drop_na(`Start date`) %>% 
-            filter(# putting req around input removes warning about length
-                `Start date` >= req(input$years[1]),
-                `Start date` <= req(input$years[2])
-            )
-        
         paste("The following donut chart shows the breakdown of percent effort by ",
               input$stratify_pct_effort,
               " between ", 
@@ -116,6 +109,12 @@ server <- function(input, output) {
     # subset data for pie chart based on dates
     # update pie chart depending on input selected
     output$pieChart <- renderPlotly({
+        pie <- tracker_toggl() %>% 
+            # drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            )
         
         # change grouping to sum depending on which summary level is selected
         switch(input$stratify_pct_effort,

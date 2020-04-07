@@ -22,7 +22,7 @@ dashboardPage(
         dateRangeInput(inputId = "years",
                        label = "Date range: ",
                        # default time from 1 year prior through current date
-                       start = Sys.Date() - 1, end = Sys.Date() + 1,
+                       start = Sys.Date() - years(1), end = Sys.Date(),
                        min = Sys.Date() - years(3), max = Sys.Date() + 1,
                        format = "yyyy-mm-dd", startview = "year",
                        separator = " to ", width = NULL, autoclose = TRUE),
