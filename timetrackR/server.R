@@ -102,6 +102,7 @@ server <- function(input, output) {
               # paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
               # ". ",
               "Note that projects representing 3% or less of the total number of hours are collapsed into the 'Other' category."
+
         )
     })
     
