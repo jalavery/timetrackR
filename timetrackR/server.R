@@ -95,27 +95,25 @@ server <- function(input, output) {
     # print summary of figure
     # change to footnote?
     output$pie_text <- renderText({
-        pie <- tracker_toggl() %>% 
-            drop_na(`Start date`) %>% 
-            filter(# putting req around input removes warning about length
-                `Start date` >= req(input$years[1]),
-                `Start date` <= req(input$years[2])
-            )
-        
-        paste("The following donut chart shows the breakdown of percent effort by ",
-              input$stratify_pct_effort,
-              " between ", 
-              ### left off trying to get start date to correctly reflect start date in data,
-              ### rather than just the start date in the date window
-              # min(pie$`Start date`),
-              paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
-              ". Note that projects representing 3% or less are collapsed into the 'Other' category."
+        paste(
+            # "The following donut chart shows the breakdown of percent effort by ",
+              # input$stratify_pct_effort,
+              # " between ", 
+              # paste0(format(input$years, "%b %d, %Y"), collapse = " and "),
+              # ". ",
+              "Note that projects representing 3% or less of the total number of hours are collapsed into the 'Other' category."
         )
     })
     
     # subset data for pie chart based on dates
     # update pie chart depending on input selected
     output$pieChart <- renderPlotly({
+        pie <- tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            )
         
         # change grouping to sum depending on which summary level is selected
         switch(input$stratify_pct_effort,
@@ -126,9 +124,11 @@ server <- function(input, output) {
                    group_by(pi_lump) %>%
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
-                   plot_ly(labels = ~pi_lump, values = ~round(sum_hrs)) %>%
+                   plot_ly(labels = ~pi_lump, values = ~round(sum_hrs),
+                           width = 400, height = 400) %>%
                    add_pie(hole = 0.6) %>%
-                   layout(#title = "Percent Effort",
+                   layout(autosize = FALSE, showlegend = FALSE,
+                          #title = "Percent Effort",
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
                
@@ -139,9 +139,11 @@ server <- function(input, output) {
                    group_by(Project_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Project_lump, values = ~round(sum_hrs)) %>%
+                   plot_ly(labels = ~ Project_lump, values = ~round(sum_hrs),
+                           width = 400, height = 400) %>%
                    add_pie(hole = 0.6) %>% 
-                   layout(#title = '% of total hours by project',
+                   layout(autosize = FALSE, showlegend = FALSE,
+                          #title = '% of total hours by project',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
                
@@ -154,9 +156,11 @@ server <- function(input, output) {
                    group_by(Tags_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Tags_lump, values = ~round(sum_hrs)) %>%
+                   plot_ly(labels = ~ Tags_lump, values = ~round(sum_hrs),
+                           width = 400, height = 400) %>%
                    add_pie(hole = 0.6) %>%
-                   layout(#title = '% of total hours by project Tags',
+                   layout(autosize = FALSE, showlegend = FALSE,
+                          #title = '% of total hours by project Tags',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
                
@@ -169,9 +173,11 @@ server <- function(input, output) {
                    group_by(desc_lump) %>% 
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs)) %>%
+                   plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs),
+                           width = 400, height = 400) %>%
                    add_pie(hole = 0.6) %>%
-                   layout(#title = '% of total hours by project Tags',
+                   layout(autosize = FALSE, showlegend = FALSE,
+                          #title = '% of total hours by project Tags',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
         )})
@@ -182,9 +188,10 @@ server <- function(input, output) {
     
     # print summary of figure
     output$bar_text <- renderText({
-        paste("The following bar chart shows the total number of hours per project between ",          " between ",
-              paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
-        )
+        "Note that projects representing 3% or less of the total number of hours are collapsed into the 'Other' category."
+        # paste("The following bar chart shows the total number of hours per project between ",          " between ",
+        #       paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
+        # )
     })
     
     # figure
@@ -199,7 +206,8 @@ server <- function(input, output) {
                    ungroup() %>% 
                    arrange(Client) %>% 
                    # order study title by client to group in order long the axis
-                   mutate(Project_factor = as.factor(Client),
+                   mutate(Project_factor_pre = as.factor(Client),
+                          Project_factor = fct_lump(Project_factor_pre, p = 0.03, w = sum_hrs),
                           status_desc = paste0('<br>Client: ', Client, 
                                                '<br>Hours: ', round(sum_hrs))),
                
@@ -210,19 +218,25 @@ server <- function(input, output) {
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
                    ungroup() %>% 
                    # order study title by client to group in order long the axis
-                   mutate(Project_factor = fct_reorder(Project, Client),
+                   mutate(project_wrap = cat(strwrap(Project, width = 20), collapse = "\n"),
+                          project_wrap2 = str_wrap(Project, width = 1),
+                          Project_factor_pre = fct_reorder(project_wrap2, Client),
+                          Project_factor = fct_lump(Project_factor_pre, p = 0.03, w = sum_hrs),
                           status_desc = paste0('<br>Client: ', Client, 
+                                               '<br>Project: ', Project,
                                                '<br>Hours: ', round(sum_hrs)))
         )
         
         # create barchart for total number of hours
         plot_ly(data = bar, y = ~Project_factor, x = ~sum_hrs, 
                 type = 'bar', split = ~Client, hoverinfo = "text", 
-                text = ~status_desc, height = "80%") %>%
+                text = ~status_desc, width = 400, height = 400) %>%
             layout(yaxis = list(title = "", categoryorder = "array", 
-                                categoryarray = order, type = "category", autorange = "reversed"),
-                   xaxis = list(title = 'Number of hours'), barmode = 'relative', showlegend = FALSE,
-                   autosize = T)#, margin = list(l = 235))
+                                categoryarray = order, type = "category", 
+                                autorange = "reversed"),
+                   xaxis = list(title = 'Total number of hours'), 
+                   barmode = 'relative', showlegend = FALSE,
+                   autosize = TRUE, margin = list(l = 150))
     })
     
     ######################
@@ -286,7 +300,7 @@ server <- function(input, output) {
                   axis.title = element_blank(), 
                   axis.ticks = element_blank(),
                   axis.text = element_text(size = 12)) +
-            scale_x_date(breaks = "3 months", date_labels = "%b %Y") 
+            scale_x_date(breaks = "3 months", date_labels = "%b %Y")
     })
     
 }

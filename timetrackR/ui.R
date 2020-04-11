@@ -22,7 +22,7 @@ dashboardPage(
         dateRangeInput(inputId = "years",
                        label = "Date range: ",
                        # default time from 1 year prior through current date
-                       start = Sys.Date() - 1, end = Sys.Date() + 1,
+                       start = Sys.Date() - years(1), end = Sys.Date(),
                        min = Sys.Date() - years(3), max = Sys.Date() + 1,
                        format = "yyyy-mm-dd", startview = "year",
                        separator = " to ", width = NULL, autoclose = TRUE),
@@ -48,9 +48,9 @@ dashboardPage(
                             collapsible = TRUE,
                             radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
                                          choices = c("Client", "Project", "Phase", "Task"), inline = TRUE),
-                            textOutput("pie_text"),
-                            plotlyOutput("pieChart")#,
-                            # width = 6, height = 500
+                            plotlyOutput("pieChart"),
+                            textOutput("pie_text")#,
+                            #width = 6, height = 600
                         ),
                         
                         box(
@@ -58,15 +58,16 @@ dashboardPage(
                             collapsible = TRUE,
                             radioButtons("status_filter_bar", label = h4("Filter: "),
                                          choices = c("Client", "Project"), inline = TRUE),
-                            plotlyOutput("barChart")#,
-                            # width = 6, height = 500
+                            plotlyOutput("barChart"),
+                            textOutput("bar_text")#,
+                            #width = 6, height = 600
                         ), 
                         
                         box(
                             title = "Project Timeline", status = "warning", solidHeader = TRUE,
                             textOutput("output$timeline_text"),
-                            plotOutput("timeline")#,
-                            # width = 12
+                            plotOutput("timeline", height = "440px"),
+                            height = 500, width = 12
                         )
                     )
             ),
@@ -75,24 +76,33 @@ dashboardPage(
             tabItem(tabName = "about",
                     fluidRow(
                         box(title = "About timetrackR", 
+                            img(src = 'timetrackR.png', align = "right", width = 100),
+                            "timetrackR is a tool to analyze how you are spending your time. The idea is that you track how you are spending your time in toggl, then export the data from toggl into timetrackR for insights about where your time is going.",
+                            br(), br(),
                             "This dashboard was built in RStudio primarily with shiny, shinydashboard, and the tidyverse.",
-                            br(),
-                            # <img src = "timetrackR.png">,
-                            "This app was originally presented at RLadies New York in February 2020. The presentation can be found [here](www.github.com/jalavery/timetrackr)"
-                            ),
-                        box(title = "About me"
-                            ),
-                        box(title = "Instructions",
+                            br(), br(),
+                            "This app was originally presented at",
+                            a(href = "https://www.meetup.com/rladies-newyork/events/268481404/", "RLadies New York"),
+                            "in February 2020. The presentation can be found ",
+                            a(href = "www.github.com/jalavery/timetrackr", "here. "),
+                            br(), br(),
+                            "Following the RLadies presentation, I transitioned timetrackR from a traditional shiny app to a ",
+                            a(href = "https://rstudio.github.io/shinydashboard/", "shinydashboard"),
+                            " and integrated Toggl exports.",
+                            br(), br(),
+                            "All code is available on ",
+                            a(href = "https://github.com/jalavery/timetrackR", "GitHub.")
+                        ),
+                        box(title = "How to use timetrackR",
                             "This app is based on tracking your time in Toggl and exporting that data for custom visualizations.",
-                            br(),
-                            "To prepare your data for use in the app:", br(), br(),
+                            "To prepare your data for use in the app:", br(), 
                             "1. Navigate to toggl.com", br(), br(),
-                            "2. Navigate to the Reports menu item", br(), br(),
-                            "3. At the top of the page, go to Detailed reports", br(), br(),
+                            "2. On the lefthand side,select Reports", br(), br(),
+                            "3. At the top of the page, select Detailed reports", br(), br(),
                             "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
-                            "5. Change the timeframe from 'This week' to 'This year'",
+                            "5. Change the timeframe from 'This week' to 'This year'", br(), br(),
                             "6. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
-            ))
+                    ))
         )
     )
 )
