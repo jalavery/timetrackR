@@ -54,7 +54,15 @@ dashboardPage(
                         ),
                         
                         box(
-                            title = "Total Hours", status = "primary", solidHeader = TRUE,
+                            title = "Percent Effort Over Time", status = "primary", solidHeader = TRUE,
+                            collapsible = TRUE,
+                            plotlyOutput("stacked_bar")#,
+                            #textOutput("pie_text")#,
+                            #width = 6, height = 600
+                        ),
+                        
+                        box(
+                            title = "Total Hours", status = "warning", solidHeader = TRUE,
                             collapsible = TRUE,
                             radioButtons("status_filter_bar", label = h4("Filter: "),
                                          choices = c("Client", "Project"), inline = TRUE),
@@ -66,8 +74,8 @@ dashboardPage(
                         box(
                             title = "Project Timeline", status = "warning", solidHeader = TRUE,
                             textOutput("output$timeline_text"),
-                            plotOutput("timeline", height = "440px"),
-                            height = 500, width = 12
+                            plotOutput("timeline")#, height = "440px")#,
+                            # height = 500, width = 12
                         )
                     )
             ),
@@ -97,7 +105,7 @@ dashboardPage(
                             "This app is based on tracking your time in Toggl and exporting that data for custom visualizations.",
                             "To prepare your data for use in the app:", br(), 
                             "1. Navigate to toggl.com", br(), br(),
-                            "2. On the lefthand side,select Reports", br(), br(),
+                            "2. On the lefthand side, select Reports", br(), br(),
                             "3. At the top of the page, select Detailed reports", br(), br(),
                             "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
                             "5. Change the timeframe from 'This week' to 'This year'", br(), br(),

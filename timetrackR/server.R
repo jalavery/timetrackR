@@ -85,10 +85,6 @@ server <- function(input, output) {
     })
     
     ######################
-    #       images       #
-    ######################
-    
-    ######################
     #      % effort      #
     ######################
     
@@ -175,13 +171,61 @@ server <- function(input, output) {
                    # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
                    plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs),
-                           width = 400, height = 400) %>%
+                           # width = 400, height = 400
+                           ) %>%
                    add_pie(hole = 0.6) %>%
                    layout(autosize = FALSE, showlegend = FALSE,
                           #title = '% of total hours by project Tags',
                        xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                        yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
         )})
+    
+    ##########################
+    #    % effort over time  #
+    ##########################
+    output$stacked_bar <- renderPlotly({
+        toggl2 <- tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            ) %>% 
+            janitor::clean_names() %>%
+            drop_na(project, client) %>% 
+            mutate(year = year(start_date),
+                   month = month(start_date),
+                   year_month_fct = factor(paste0(year, "-", month)),
+                   year_month = fct_reorder(year_month_fct, start_date)) %>% 
+            # get denominator to calculate percent of hours
+            group_by(year_month) %>% 
+            mutate(denominator = sum(duration)) %>% 
+            # get total number of hours per project by year and month
+            group_by(year_month, project, client, denominator) %>% 
+            summarize(tot_hours = sum(duration)) %>% 
+            mutate(pct_hours = (100*tot_hours)/denominator) %>% 
+            # if total number of hours is less than 5% of total time, lump into other category
+            mutate(project_collapsed = case_when(pct_hours < 10 ~ "Other",
+                                                 TRUE ~ project),
+                   client_collapsed = case_when(pct_hours < 10 ~ "Other",
+                                                TRUE ~ client)) %>% 
+            # group other projects together
+            group_by(year_month, project_collapsed, client_collapsed) %>% 
+            summarize(pct_hours_collapsed = sum(pct_hours)) %>% 
+            mutate(hover_text = paste0("Project: ", project_collapsed, "<br>",
+                                       "Client: ", client_collapsed, "<br>",
+                                       "Effort: ", round(pct_hours_collapsed), "%"))
+        
+        
+        g1 <- ggplot(toggl2, aes(x = year_month, y = pct_hours_collapsed, fill = project_collapsed, text = hover_text)) +
+            geom_bar(position = "stack", stat = "identity") +
+            theme_bw() +
+            theme(legend.position = "none",
+                  axis.text.x = element_text(angle = 45, hjust = 1)) +
+            labs(x = "Month, Year",
+                 y = "% effort") 
+        
+        ggplotly(g1, tooltip = "text")
+    })
     
     ########################
     # horizontal bar chart #
@@ -231,13 +275,15 @@ server <- function(input, output) {
         # create barchart for total number of hours
         plot_ly(data = bar, y = ~Project_factor, x = ~sum_hrs, 
                 type = 'bar', split = ~Client, hoverinfo = "text", 
-                text = ~status_desc, width = 400, height = 400) %>%
+                text = ~status_desc, 
+                # width = 500, height = 400
+                ) %>%
             layout(yaxis = list(title = "", categoryorder = "array", 
                                 categoryarray = order, type = "category", 
                                 autorange = "reversed"),
                    xaxis = list(title = 'Total number of hours'), 
                    barmode = 'relative', showlegend = FALSE,
-                   autosize = TRUE, margin = list(l = 150))
+                   autosize = TRUE, margin = list(l = 200))
     })
     
     ######################
