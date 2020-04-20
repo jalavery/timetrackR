@@ -1,15 +1,13 @@
-server <- function(input, output) {
-    # load libraries (run this before running shiny app)
-    library(shiny)
-    library(shinydashboard)
-    library(plotly)
-    library(tidyverse)
-    library(rsconnect)
-    library(DT)
-    library(lubridate)
-    library(rsconnect)
-    library(ggplot2)
+library(shiny)
+library(shinydashboard)
+library(plotly)
+library(tidyverse)
+library(rsconnect)
+library(DT)
+library(lubridate)
+library(ggplot2)
 
+server <- function(input, output) {
     # read in tracking data from Toggl
     tracker_toggl <- reactive({
         req(input$file1)
