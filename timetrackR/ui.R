@@ -43,14 +43,23 @@ dashboardPage(
                         infoBoxOutput("top_task")
                         ),
                     fluidRow(
-                        box(
-                            title = "Percent Effort", status = "primary", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
-                                         choices = c("Client", "Project", "Phase", "Task"), inline = TRUE),
-                            plotlyOutput("pieChart"),
-                            textOutput("pie_text")#,
+                        #box(
+                            # title = "Percent Effort", status = "primary", solidHeader = TRUE,
+                            # collapsible = TRUE,
+                            # radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
+                            #              choices = c("Client", "Project", "Phase", "Task"), inline = TRUE),
+                            # plotlyOutput("pieChart")#,
+                            #textOutput("pie_text")#,
                             #width = 6, height = 600
+                        #),
+                        
+                        tabBox(title = "Percent Effort",
+                            side = "right", height = "250px",
+                            selected = "Client",
+                            tabPanel("Task", plotlyOutput("pieChart_task")),
+                            tabPanel("Phase", plotlyOutput("pieChart_phase")),
+                            tabPanel("Project", plotlyOutput("pieChart_proj")),
+                            tabPanel("Client", plotlyOutput("pieChart_client"))
                         ),
                         
                         box(
@@ -61,15 +70,22 @@ dashboardPage(
                             #width = 6, height = 600
                         ),
                         
-                        box(
-                            title = "Total Hours", status = "warning", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            radioButtons("status_filter_bar", label = h4("Filter: "),
-                                         choices = c("Client", "Project"), inline = TRUE),
-                            plotlyOutput("barChart"),
-                            textOutput("bar_text")#,
-                            #width = 6, height = 600
-                        ), 
+                        # box(
+                        #     title = "Total Hours", status = "warning", solidHeader = TRUE,
+                        #     collapsible = TRUE,
+                        #     radioButtons("status_filter_bar", label = h4("Filter: "),
+                        #                  choices = c("Client", "Project"), inline = TRUE),
+                        #     plotlyOutput("barChart"),
+                        #     textOutput("bar_text")#,
+                        #     #width = 6, height = 600
+                        # ), 
+                        
+                        tabBox(title = "Total Hours",
+                               side = "right", height = "250px",
+                               selected = "Client",
+                               tabPanel("Project", plotlyOutput("barChart_proj")),
+                               tabPanel("Client", plotlyOutput("barChart_client"))
+                        ),
                         
                         box(
                             title = "Project Timeline", status = "warning", solidHeader = TRUE,

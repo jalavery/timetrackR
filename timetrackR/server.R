@@ -104,81 +104,103 @@ server <- function(input, output) {
     
     # subset data for pie chart based on dates
     # update pie chart depending on input selected
-    output$pieChart <- renderPlotly({
-        pie <- tracker_toggl() %>% 
+    output$pieChart_client <- renderPlotly({
+            # set up df
+            tracker_toggl() %>% 
             drop_na(`Start date`) %>% 
             filter(# putting req around input removes warning about length
                 `Start date` >= req(input$years[1]),
                 `Start date` <= req(input$years[2])
-            )
+            ) %>% 
+            drop_na(Duration, Client) %>% 
+            # collapse projects PIs accounting for <3% of time
+            mutate(pi_lump = fct_lump(Client, prop = 0.03, w = Duration)) %>% 
+            group_by(pi_lump) %>%
+            # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
+            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
+            plot_ly(labels = ~pi_lump, values = ~round(sum_hrs)
+                    #,
+                    #width = 400, height = 400
+            ) %>%
+            add_pie(hole = 0.6) %>%
+            layout(autosize = TRUE, showlegend = FALSE,
+                   #title = "Percent Effort",
+                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    })
         
-        # change grouping to sum depending on which summary level is selected
-        switch(input$stratify_pct_effort,
-               "Client" = pie %>% 
-                   drop_na(Duration, Client) %>% 
-                   # collapse projects PIs accounting for <3% of time
-                   mutate(pi_lump = fct_lump(Client, prop = 0.03, w = Duration)) %>% 
-                   group_by(pi_lump) %>%
-                   # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
-                   summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>%
-                   plot_ly(labels = ~pi_lump, values = ~round(sum_hrs),
-                           width = 400, height = 400) %>%
-                   add_pie(hole = 0.6) %>%
-                   layout(autosize = FALSE, showlegend = FALSE,
-                          #title = "Percent Effort",
-                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
-               
-               "Project" = pie %>% 
-                   # collapse projects accounting for <3% of time in interval
-                   drop_na(Duration, Project) %>% 
-                   mutate(Project_lump = fct_lump(Project, prop = 0.03, w = Duration)) %>% 
-                   group_by(Project_lump) %>% 
-                   # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
-                   summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Project_lump, values = ~round(sum_hrs),
-                           width = 400, height = 400) %>%
-                   add_pie(hole = 0.6) %>% 
-                   layout(autosize = FALSE, showlegend = FALSE,
-                          #title = '% of total hours by project',
-                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
-               
-               "Phase" = pie %>% 
-                   drop_na(Duration, Tags) %>% 
-                   mutate(Tags = case_when(is.na(Tags) ~ "Other",
-                                           TRUE ~ Tags)) %>% 
-                   # collapse tasks accounting for <3% of time
-                   mutate(Tags_lump = fct_lump(Tags, prop = 0.03, w = Duration)) %>% 
-                   group_by(Tags_lump) %>% 
-                   # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
-                   summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ Tags_lump, values = ~round(sum_hrs),
-                           width = 400, height = 400) %>%
-                   add_pie(hole = 0.6) %>%
-                   layout(autosize = FALSE, showlegend = FALSE,
-                          #title = '% of total hours by project Tags',
-                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)),
-               
-               "Task" = pie %>% 
-                   drop_na(Duration, Tags) %>% 
-                   mutate(description = case_when(is.na(Description) ~ "Other",
-                                                  TRUE ~ Description)) %>% 
-                   # collapse tasks accounting for <3% of time
-                   mutate(desc_lump = fct_lump(description, prop = 0.03, w = Duration)) %>% 
-                   group_by(desc_lump) %>% 
-                   # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
-                   summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
-                   plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs),
-                           # width = 400, height = 400
-                           ) %>%
-                   add_pie(hole = 0.6) %>%
-                   layout(autosize = FALSE, showlegend = FALSE,
-                          #title = '% of total hours by project Tags',
-                       xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                       yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
-        )})
+    output$pieChart_proj <- renderPlotly({
+        # set up df
+        tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            ) %>% 
+            # collapse projects accounting for <3% of time in interval
+            drop_na(Duration, Project) %>% 
+            mutate(Project_lump = fct_lump(Project, prop = 0.03, w = Duration)) %>% 
+            group_by(Project_lump) %>% 
+            # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
+            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+            plot_ly(labels = ~ Project_lump, values = ~round(sum_hrs)#,
+                    #width = 400, height = 400
+            ) %>%
+            add_pie(hole = 0.6) %>% 
+            layout(autosize = TRUE, showlegend = FALSE,
+                   #title = '% of total hours by project',
+                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    })
+    
+    output$pieChart_phase <- renderPlotly({
+        # set up df
+        tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            ) %>% 
+            drop_na(Duration, Tags) %>% 
+            mutate(Tags = case_when(is.na(Tags) ~ "Other",
+                                    TRUE ~ Tags)) %>% 
+            # collapse tasks accounting for <3% of time
+            mutate(Tags_lump = fct_lump(Tags, prop = 0.03, w = Duration)) %>% 
+            group_by(Tags_lump) %>% 
+            # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
+            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+            plot_ly(labels = ~ Tags_lump, values = ~round(sum_hrs)) %>%
+            add_pie(hole = 0.6) %>%
+            layout(autosize = TRUE, showlegend = FALSE,
+                   #title = '% of total hours by project Tags',
+                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    })
+    
+    output$pieChart_task <- renderPlotly({
+        # set up df
+        tracker_toggl() %>% 
+            drop_na(`Start date`) %>% 
+            filter(# putting req around input removes warning about length
+                `Start date` >= req(input$years[1]),
+                `Start date` <= req(input$years[2])
+            ) %>%
+            drop_na(Duration, Description) %>% 
+            # group into other if description is missing
+            mutate(description = case_when(is.na(Description) ~ "Other",
+                                           TRUE ~ Description)) %>% 
+            # collapse tasks accounting for <3% of time
+            mutate(desc_lump = fct_lump(description, prop = 0.03, w = Duration)) %>% 
+            group_by(desc_lump) %>% 
+            # re-calculate total number of hours across proj selected (have to recalc if >1 stat per proj)
+            summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
+            plot_ly(labels = ~ desc_lump, values = ~round(sum_hrs)) %>%
+            add_pie(hole = 0.6) %>%
+            layout(autosize = TRUE, showlegend = FALSE,
+                   #title = '% of total hours by project Tags',
+                   xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                   yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    })
     
     ##########################
     #    % effort over time  #
@@ -221,7 +243,7 @@ server <- function(input, output) {
             theme_bw() +
             theme(legend.position = "none",
                   axis.text.x = element_text(angle = 45, hjust = 1)) +
-            labs(x = "Month, Year",
+            labs(x = "",
                  y = "% effort") 
         
         ggplotly(g1, tooltip = "text")
@@ -240,10 +262,8 @@ server <- function(input, output) {
     })
     
     # figure
-    output$barChart <- renderPlotly({
-        # switch depending on input selected
-        switch(input$status_filter_bar,
-               "Client" = bar <- tracker_toggl() %>%
+    output$barChart_client <- renderPlotly({
+        g2 <- tracker_toggl() %>%
                    filter(`Start date` >= input$years[1],
                           `Start date` <= input$years[2]) %>%
                    group_by(Client) %>% 
@@ -251,53 +271,53 @@ server <- function(input, output) {
                    ungroup() %>% 
                    arrange(Client) %>% 
                    # order study title by client to group in order long the axis
-                   mutate(Project_factor_pre = as.factor(Client),
+                   mutate(Project_factor_pre = as.factor(str_wrap(Client, width = 15)),
                           Project_factor = fct_lump(Project_factor_pre, p = 0.03, w = sum_hrs),
+                          Project_factor2 = fct_reorder(Project_factor, sum_hrs),
                           status_desc = paste0('<br>Client: ', Client, 
-                                               '<br>Hours: ', round(sum_hrs))),
-               
-               "Project" = bar <- tracker_toggl() %>%
+                                               '<br>Hours: ', round(sum_hrs))) %>% 
+                   drop_na() %>% 
+            ggplot(aes(x = Project_factor2, y = sum_hrs, fill = Client, text = status_desc)) + 
+            geom_bar(stat = "identity") + 
+            coord_flip() + 
+            theme_bw() + 
+            theme(legend.position = "none") + 
+            labs(y = "Hours",
+                 x = "")
+        
+        ggplotly(g2, tooltip = "text")
+    })
+    
+    # bar chart by project
+    output$barChart_proj <- renderPlotly({
+        g2 <- tracker_toggl() %>%
                    filter(`Start date` >= input$years[1],
                           `Start date` <= input$years[2]) %>%
                    group_by(Client, Project) %>% 
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
                    ungroup() %>% 
                    # order study title by client to group in order long the axis
-                   mutate(project_wrap = cat(strwrap(Project, width = 20), collapse = "\n"),
-                          project_wrap2 = str_wrap(Project, width = 1),
-                          Project_factor_pre = fct_reorder(project_wrap2, Client),
-                          Project_factor = fct_lump(Project_factor_pre, p = 0.03, w = sum_hrs),
+                   mutate(project_wrap = str_wrap(Project, width = 15),
+                          Project_factor = fct_lump(project_wrap, p = 0.03, w = sum_hrs),
+                          Project_factor2 = fct_reorder(Project_factor, sum_hrs),
                           status_desc = paste0('<br>Client: ', Client, 
                                                '<br>Project: ', Project,
-                                               '<br>Hours: ', round(sum_hrs)))
-        )
+                                               '<br>Hours: ', round(sum_hrs))) %>% 
+                   drop_na() %>% 
+        ggplot(aes(x = Project_factor2, y = sum_hrs, fill = Client, text = status_desc)) + 
+            geom_bar(stat = "identity") + 
+            coord_flip() + 
+            theme_bw() + 
+            theme(legend.position = "none") + 
+            labs(y = "Hours",
+                 x = "")
         
-        # create barchart for total number of hours
-        plot_ly(data = bar, y = ~Project_factor, x = ~sum_hrs, 
-                type = 'bar', split = ~Client, hoverinfo = "text", 
-                text = ~status_desc, 
-                # width = 500, height = 400
-                ) %>%
-            layout(yaxis = list(title = "", categoryorder = "array", 
-                                categoryarray = order, type = "category", 
-                                autorange = "reversed"),
-                   xaxis = list(title = 'Total number of hours'), 
-                   barmode = 'relative', showlegend = FALSE,
-                   autosize = TRUE, margin = list(l = 200))
+        ggplotly(g2, tooltip = "text")
     })
     
     ######################
     #    timeline     #
     ######################
-    
-    # print summary of figure
-    output$timeline_text <- renderText({
-        paste("The following project timeline shows data for ",
-              str_to_lower(input$status_filter_gantt), 
-              " between ",
-              paste0(format(input$years, "%b %d, %Y"), collapse = " and ")
-        )
-    })
     
     # figure
     output$timeline <- renderPlot({
@@ -333,7 +353,8 @@ server <- function(input, output) {
             mutate(overall_start = as.Date(min(start_dt))) %>% 
             # order projects by start time
             ungroup() %>% 
-            mutate(Project = fct_reorder(Project, desc(start_dt)))
+            mutate(Project = fct_reorder(str_wrap(Project, width = 35), desc(start_dt))) %>% 
+            drop_na()
         
         # create timeline
         ggplot(for_timeline) +
