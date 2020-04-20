@@ -283,7 +283,8 @@ server <- function(input, output) {
             theme_bw() + 
             theme(legend.position = "none") + 
             labs(y = "Hours",
-                 x = "")
+                 x = ""
+                 )
         
         ggplotly(g2, tooltip = "text")
     })
@@ -297,7 +298,7 @@ server <- function(input, output) {
                    summarize(sum_hrs = sum(Duration, na.rm = TRUE)) %>% 
                    ungroup() %>% 
                    # order study title by client to group in order long the axis
-                   mutate(project_wrap = str_wrap(Project, width = 15),
+                   mutate(project_wrap = str_wrap(Project, width = 45),
                           Project_factor = fct_lump(project_wrap, p = 0.03, w = sum_hrs),
                           Project_factor2 = fct_reorder(Project_factor, sum_hrs),
                           status_desc = paste0('<br>Client: ', Client, 
@@ -310,7 +311,8 @@ server <- function(input, output) {
             theme_bw() + 
             theme(legend.position = "none") + 
             labs(y = "Hours",
-                 x = "")
+                 x = ""
+            )
         
         ggplotly(g2, tooltip = "text")
     })
@@ -353,22 +355,28 @@ server <- function(input, output) {
             mutate(overall_start = as.Date(min(start_dt))) %>% 
             # order projects by start time
             ungroup() %>% 
-            mutate(Project = fct_reorder(str_wrap(Project, width = 35), desc(start_dt))) %>% 
-            drop_na()
+            mutate(Project = fct_reorder(Project, desc(start_dt))) %>% 
+            drop_na() %>% 
+            mutate(status_desc = paste0('<br>Client: ', Client, 
+                                        '<br>Project: ', Project))
         
         # create timeline
         ggplot(for_timeline) +
             geom_segment(aes(x = start_dt, xend = end_dt, 
                              y = Project, yend = Project, 
-                             colour = Tags), size = 4) +
+                             color = Tags), size = 4) +
             theme_bw() +
             theme(legend.position = "bottom",
                   legend.title = element_blank(),
-                  legend.text = element_text(size = 14),
+                  legend.text = element_text(size = 11),
                   axis.title = element_blank(), 
                   axis.ticks = element_blank(),
-                  axis.text = element_text(size = 12)) +
+                  axis.text = element_text(size = 11)
+                  ) +
+            guides(color = guide_legend(nrow = 2)) +
             scale_x_date(breaks = "3 months", date_labels = "%b %Y")
+        
+        # ggplotly(g3, tooltip = "text") 
     })
     
 }

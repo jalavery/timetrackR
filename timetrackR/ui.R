@@ -43,17 +43,7 @@ dashboardPage(
                         infoBoxOutput("top_task")
                         ),
                     fluidRow(
-                        #box(
-                            # title = "Percent Effort", status = "primary", solidHeader = TRUE,
-                            # collapsible = TRUE,
-                            # radioButtons("stratify_pct_effort", label = h4("Stratify by: "),
-                            #              choices = c("Client", "Project", "Phase", "Task"), inline = TRUE),
-                            # plotlyOutput("pieChart")#,
-                            #textOutput("pie_text")#,
-                            #width = 6, height = 600
-                        #),
-                        
-                        tabBox(title = "Percent Effort",
+                        tabBox(title = "Cumulative Percent Effort",
                             side = "right", height = "250px",
                             selected = "Client",
                             tabPanel("Task", plotlyOutput("pieChart_task")),
@@ -64,24 +54,12 @@ dashboardPage(
                         
                         box(
                             title = "Percent Effort Over Time", status = "primary", solidHeader = TRUE,
-                            collapsible = TRUE,
-                            plotlyOutput("stacked_bar")#,
-                            #textOutput("pie_text")#,
-                            #width = 6, height = 600
+                            collapsible = FALSE,
+                            plotlyOutput("stacked_bar")
                         ),
                         
-                        # box(
-                        #     title = "Total Hours", status = "warning", solidHeader = TRUE,
-                        #     collapsible = TRUE,
-                        #     radioButtons("status_filter_bar", label = h4("Filter: "),
-                        #                  choices = c("Client", "Project"), inline = TRUE),
-                        #     plotlyOutput("barChart"),
-                        #     textOutput("bar_text")#,
-                        #     #width = 6, height = 600
-                        # ), 
-                        
                         tabBox(title = "Total Hours",
-                               side = "right", height = "250px",
+                               side = "right", #height = "250px",
                                selected = "Client",
                                tabPanel("Project", plotlyOutput("barChart_proj")),
                                tabPanel("Client", plotlyOutput("barChart_client"))
@@ -90,16 +68,18 @@ dashboardPage(
                         box(
                             title = "Project Timeline", status = "warning", solidHeader = TRUE,
                             textOutput("output$timeline_text"),
-                            plotOutput("timeline")#, height = "440px")#,
-                            # height = 500, width = 12
-                        )
+                            plotOutput("timeline")
+                        ),
+                        
+                        box("Note that projects representing 3% or less of the total number of hours are collapsed into the 'Other' category for all figures.",
+                            width = 12)
                     )
             ),
             
             # About tab content
             tabItem(tabName = "about",
                     fluidRow(
-                        box(title = "About timetrackR", 
+                        box(title = "About timetrackR", status = "warning", solidHeader = TRUE,
                             img(src = 'timetrackR.png', align = "right", width = 100),
                             "timetrackR is a tool to analyze how you are spending your time. The idea is that you track how you are spending your time in toggl, then export the data from toggl into timetrackR for insights about where your time is going.",
                             br(), br(),
@@ -112,20 +92,20 @@ dashboardPage(
                             br(), br(),
                             "Following the RLadies presentation, I transitioned timetrackR from a traditional shiny app to a ",
                             a(href = "https://rstudio.github.io/shinydashboard/", "shinydashboard"),
-                            " and integrated Toggl exports.",
+                            " and integrated Toggl exports. An updated version of the presentation can be found ",
+                            a(href = "https://rstudio.github.io/shinydashboard", "here."),
                             br(), br(),
                             "All code is available on ",
                             a(href = "https://github.com/jalavery/timetrackR", "GitHub.")
                         ),
-                        box(title = "How to use timetrackR",
+                        box(title = "How to use timetrackR", status = "primary", solidHeader = TRUE,
                             "This app is based on tracking your time in Toggl and exporting that data for custom visualizations.",
-                            "To prepare your data for use in the app:", br(), 
-                            "1. Navigate to toggl.com", br(), br(),
-                            "2. On the lefthand side, select Reports", br(), br(),
-                            "3. At the top of the page, select Detailed reports", br(), br(),
-                            "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
-                            "5. Change the timeframe from 'This week' to 'This year'", br(), br(),
-                            "6. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
+                            "To export your data from Toggl for use in timetrackR:", br(), 
+                            "1. From toggl.com: On the lefthand side, select Reports", br(), br(),
+                            "2. At the top of the page, select Detailed reports", br(), br(),
+                            "3. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
+                            "4. Change the timeframe from 'This week' to 'This year'", br(), br(),
+                            "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
                     ))
         )
     )
