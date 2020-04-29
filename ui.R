@@ -102,9 +102,10 @@ dashboardPage(
                             "To export your data from Toggl for use in timetrackR:", br(), 
                             "1. From toggl.com: On the lefthand side, select Reports", br(), br(),
                             "2. At the top of the page, select Detailed reports", br(), br(),
-                            "3. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
-                            "4. Change the timeframe from 'This week' to 'This year'", br(), br(),
-                            "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.")
+                            "3. Change the timeframe from 'This week' to 'This year' or other time period of interest.", br(), br(),
+                            "4. On the top right, hit the download button to download the CSV file of your logged hours.", br(), br(),
+                            "5. Upload that CSV file in timetrackR and select the summary level on the side bar panel to the left.", br(), br(),
+                            "Note: The project timeline distinguishes project phases based on the tag feature of toggl, and assumes 1 tag per time entry.")
                     ))
         )
     )
