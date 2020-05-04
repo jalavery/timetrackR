@@ -5,9 +5,9 @@ account: timetrackr
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1918059
-bundleId: 3083078
+bundleId: 3101087
 url: https://timetrackr.shinyapps.io/timetrackr/
-when: 1588192670.10124
+when: 1588598299.0786
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: ~$esentation_outline.docx|~$Strategy and Innovation timetrackR Presentation.pptx|calendar_light_orange.png|presentation_outline.docx|README.md|Strategy and Innovation timetrackR Presentation.pptx|data/.DS_Store|data/Toggl_time_entries_2019-03-02_to_2020-03-01.csv|data/Toggl_time_entries_2019-04-07_to_2020-04-06.csv|data/Toggl_time_entries_2019-04-30_to_2020-04-29.csv|R/.DS_Store|R/deploy.R|R/hexsticker.R|www/timetrackR.png
+ignoredFiles: calendar_light_orange.png|README.md|Strategy and Innovation timetrackR Presentation.pptx|data/.DS_Store|data/Toggl_time_entries_2019-03-02_to_2020-03-01.csv|data/Toggl_time_entries_2019-04-07_to_2020-04-06.csv|data/Toggl_time_entries_2019-04-30_to_2020-04-29.csv|R/.DS_Store|R/deploy.R|R/hexsticker.R
