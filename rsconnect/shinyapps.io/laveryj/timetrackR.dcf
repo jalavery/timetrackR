@@ -1,0 +1,13 @@
+name: timetrackR
+title: timetrackR
+username:
+account: laveryj
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3846654
+bundleId: 4390717
+url: https://laveryj.shinyapps.io/timetrackR/
+when: 1616611952.85507
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 2020 02 RLadies timetrackR Presentation.pdf|2020 04 Strategy and Innovation timetrackR Presentation.pdf|README.md|data/Toggl_time_entries_2019-03-02_to_2020-03-01.csv|data/Toggl_time_entries_2019-04-07_to_2020-04-06.csv|data/Toggl_time_entries_2019-04-30_to_2020-04-29.csv|R/deploy.R|R/hexsticker.R
