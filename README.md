@@ -1,3 +1,5 @@
+March 2021: New URL: https://laveryj.shinyapps.io/timetrackR/ 
+
 April 2020: timetrackR has been updated to be integrated with Toggl exports and the layout has been changed from a traditional shiny app to a shinydashboard. Additionally, the app is now hosted at https://timetrackr.shinyapps.io/timetrackr/ -- check it out! 
 
 Feb 2020: Thanks to all who came to the RLadies presentation on timetrackR on February 26! The current version of timetrackR works in conjunction with an Excel file where you log your hours, but I am in the process of updating to be compatible with exports directly from toggl. I am planning to release this update by the end of April. Stay tuned! 
