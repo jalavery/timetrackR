@@ -12,7 +12,12 @@ server <- function(input, output) {
     tracker_toggl <- reactive({
         req(input$file1)
         
-        df <- read_csv(input$file1$datapath) %>%
+        df <- read_csv(input$file1$datapath,
+                       # force column types for start/end date and time
+                       col_types = cols(`Start date` = col_date(format = "%m/%d/%Y"), 
+                                        `Start time` = col_time(format = "%H:%M:%S"),
+                                        `End date` = col_date(format = "%m/%d/%Y"), 
+                                        `End time` = col_time(format = "%H:%M:%S"))) %>%
             # change duration to hours
             mutate(Duration = period_to_seconds(hms(Duration))/(60^2))
         
