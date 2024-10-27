@@ -22,7 +22,7 @@ dashboardPage(
                        label = "Date range: ",
                        # default time from 1 year prior through current date
                        start = Sys.Date() - years(1), end = Sys.Date(),
-                       min = Sys.Date() - years(3), max = Sys.Date() + 1,
+                       min = Sys.Date() - years(5), max = Sys.Date() + 1,
                        format = "yyyy-mm-dd", startview = "year",
                        separator = " to ", width = NULL, autoclose = TRUE),
         sidebarMenu(
